@@ -1160,7 +1160,8 @@ object Utils extends Logging {
 
   def serializeEquiJoinExpression(
     joinType: JoinType, leftKeys: Seq[Expression], rightKeys: Seq[Expression],
-    leftSchema: Seq[Attribute], rightSchema: Seq[Attribute], condition: Option[Expression] = None): Array[Byte] = {
+    leftSchema: Seq[Attribute], rightSchema: Seq[Attribute],
+    condition: Option[Expression] = None, output: Option[Seq[Attribute]] = None): Array[Byte] = {
     val builder = new FlatBufferBuilder
     builder.finish(
       tuix.JoinExpr.createJoinExpr(
@@ -1184,7 +1185,12 @@ object Utils extends Logging {
           leftKeys.map(e => flatbuffersSerializeExpression(builder, e, leftSchema)).toArray),
         tuix.JoinExpr.createRightKeysVector(
           builder,
-          rightKeys.map(e => flatbuffersSerializeExpression(builder, e, rightSchema)).toArray)))
+          rightKeys.map(e => flatbuffersSerializeExpression(builder, e, rightSchema)).toArray),
+        (condition, output) match {
+          case (Some(condition), Some(output)) =>
+            flatbuffersSerializeExpression(builder, condition, output)
+          case _ => 0
+        }))
     builder.sizedByteArray()
   }
 

@@ -60,4 +60,5 @@ table JoinExpr {
     // from the right.
     left_keys:[Expr];
     right_keys:[Expr];
+    condition:[Expr];
 }

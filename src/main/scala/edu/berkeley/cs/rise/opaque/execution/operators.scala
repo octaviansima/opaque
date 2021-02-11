@@ -361,7 +361,8 @@ case class EncryptedBroadcastNestedLoopJoinExec(
       var broadcastRDD = broadcast.asInstanceOf[OpaqueOperatorExec].executeBlocked()
 
       val joinExprSer = Utils.serializeEquiJoinExpression(
-        joinType, streamedKeys, broadcastKeys, streamed.output, broadcast.output)
+        joinType, streamedKeys, broadcastKeys, streamed.output, broadcast.output,
+        condition, Some(output))
 
       broadcastRDD
     case None => throw new OpaqueException("Non-equi join needs condition")
