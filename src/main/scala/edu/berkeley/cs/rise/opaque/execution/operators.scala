@@ -31,6 +31,7 @@ import org.apache.spark.sql.catalyst.plans.JoinType
 import org.apache.spark.sql.catalyst.plans.LeftAnti
 import org.apache.spark.sql.catalyst.plans.LeftSemi
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
+import org.apache.spark.sql.execution.joins.BuildSide
 import org.apache.spark.sql.execution.SparkPlan
 
 trait LeafExecNode extends SparkPlan {
@@ -300,6 +301,25 @@ case class EncryptedSortMergeJoinExec(
         Block(enclave.NonObliviousSortMergeJoin(eid, joinExprSer, block.bytes))
       }
     }
+  }
+}
+
+case class EncryptedBroadcastNestedLoopJoinExec(
+    left: SparkPlan,
+    right: SparkPlan,
+    buildSide: BuildSide,
+    joinType: JoinType,
+    condition: Option[Expression])
+    extends BinaryExecNode with OpaqueOperatorExec {
+
+  override def output: Seq[Attribute] = {
+    Nil
+  }
+
+  override def executeBlocked(): RDD[Block] = {
+    var leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+    var rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+    leftRDD
   }
 }
 
