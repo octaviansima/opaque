@@ -293,6 +293,8 @@ case class EncryptedSortMergeJoinExec(
     val joinExprSer = Utils.serializeEquiJoinExpression(
       joinType, leftKeys, rightKeys, leftSchema, rightSchema)
 
+    println(leftSchema)
+
     timeOperator(
       child.asInstanceOf[OpaqueOperatorExec].executeBlocked(),
       "EncryptedSortMergeJoinExec") { childRDD =>
@@ -325,7 +327,10 @@ case class EncryptedBroadcastNestedLoopJoinExec(
 
   override def executeBlocked(): RDD[Block] = condition match {
     case Some(value) =>
-    case None => throw new OpaqueException("Non-equi Join needs condition")
+      var streamedRDD = streamed.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+      var broadcastRDD = broadcast.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+      broadcastRDD
+    case None => throw new OpaqueException("Non-equi join needs condition")
   }
 }
 

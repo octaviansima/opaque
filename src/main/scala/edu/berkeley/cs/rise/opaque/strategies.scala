@@ -112,7 +112,7 @@ object OpaqueOperators extends Strategy {
       filtered :: Nil
 
     // Used to match non-equi joins
-    case Join(left, right, joinType, condition, hint) =>
+    case Join(left, right, joinType, condition, hint) if isEncrypted(left) && isEncrypted(right) =>
       // For perf reasons, `BroadcastNestedLoopJoinExec` prefers to broadcast left side if
       // it's a right join, and broadcast right side if it's a left join.
       // TODO: revisit it. If left side is much smaller than the right side, it may be better
