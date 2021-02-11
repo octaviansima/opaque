@@ -1158,7 +1158,7 @@ object Utils extends Logging {
     builder.sizedByteArray()
   }
 
-  def serializeEquiJoinExpression(
+  def serializeJoinExpression(
     joinType: JoinType, leftKeys: Seq[Expression], rightKeys: Seq[Expression],
     leftSchema: Seq[Attribute], rightSchema: Seq[Attribute],
     condition: Option[Expression] = None, output: Option[Seq[Attribute]] = None): Array[Byte] = {
