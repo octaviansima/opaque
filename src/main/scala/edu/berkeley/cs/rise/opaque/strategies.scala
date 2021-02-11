@@ -113,15 +113,13 @@ object OpaqueOperators extends Strategy {
 
     // Used to match non-equi-joins
     case Join(left, right, joinType, condition, hint) =>
-      val desiredBuildSide = if (joinType.isInstanceOf[InnerLike] || joinType == FullOuter) {
-        getSmallerSide(left, right)
-      } else {
-        // For perf reasons, `BroadcastNestedLoopJoinExec` prefers to broadcast left side if
-        // it's a right join, and broadcast right side if it's a left join.
-        // TODO: revisit it. If left side is much smaller than the right side, it may be better
-        // to broadcast the left side even if it's a left join.
-        if (buildBroadcastLeft(joinType)) BuildLeft else BuildRight
-      }
+      // For perf reasons, `BroadcastNestedLoopJoinExec` prefers to broadcast left side if
+      // it's a right join, and broadcast right side if it's a left join.
+      // TODO: revisit it. If left side is much smaller than the right side, it may be better
+      // to broadcast the left side even if it's a left join.
+      val desiredBuildSide = if (joinType.isInstanceOf[InnerLike] || joinType == FullOuter)
+          getSmallerSide(left, right) else
+          getBroadcastSideBNLJ(joinType)
 
       EncryptedBroadcastNestedLoopJoinExec(planLater(left), planLater(right), desiredBuildSide, joinType, condition) :: Nil
 
@@ -217,10 +215,10 @@ object OpaqueOperators extends Strategy {
     (Seq(tag) ++ input, tag.toAttribute)
   }
 
-  private def buildBroadcastLeft(joinType: JoinType): Boolean = {
+  private def getBroadcastSideBNLJ(joinType: JoinType): BuildSide = {
     joinType match {
-      case LeftSemiOrAnti(joinType) => true
-      case _ => false
+      case LeftSemiOrAnti(joinType) => BuildRight
+      case _ => BuildLeft
     }
   }
 
