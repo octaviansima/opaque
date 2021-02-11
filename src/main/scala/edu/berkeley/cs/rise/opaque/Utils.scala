@@ -1158,7 +1158,7 @@ object Utils extends Logging {
     builder.sizedByteArray()
   }
 
-  def serializeJoinExpression(
+  def serializeEquiJoinExpression(
     joinType: JoinType, leftKeys: Seq[Expression], rightKeys: Seq[Expression],
     leftSchema: Seq[Attribute], rightSchema: Seq[Attribute]): Array[Byte] = {
     val builder = new FlatBufferBuilder

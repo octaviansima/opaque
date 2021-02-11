@@ -31,8 +31,9 @@ import org.apache.spark.sql.catalyst.plans.JoinType
 import org.apache.spark.sql.catalyst.plans.LeftAnti
 import org.apache.spark.sql.catalyst.plans.LeftSemi
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
-import org.apache.spark.sql.execution.joins.BuildSide
+import org.apache.spark.sql.execution.joins.{BuildLeft, BuildRight, BuildSide}
 import org.apache.spark.sql.execution.SparkPlan
+import edu.berkeley.cs.rise.opaque.OpaqueException
 
 trait LeafExecNode extends SparkPlan {
   override final def children: Seq[SparkPlan] = Nil
@@ -289,7 +290,7 @@ case class EncryptedSortMergeJoinExec(
   }
 
   override def executeBlocked(): RDD[Block] = {
-    val joinExprSer = Utils.serializeJoinExpression(
+    val joinExprSer = Utils.serializeEquiJoinExpression(
       joinType, leftKeys, rightKeys, leftSchema, rightSchema)
 
     timeOperator(
@@ -312,14 +313,19 @@ case class EncryptedBroadcastNestedLoopJoinExec(
     condition: Option[Expression])
     extends BinaryExecNode with OpaqueOperatorExec {
 
+  // BuildRight means the right relation <=> the broadcast relation.
+  private val (streamed, broadcast) = buildSide match {
+    case BuildRight => (left, right)
+    case BuildLeft => (right, left)
+  }
+
   override def output: Seq[Attribute] = {
     Nil
   }
 
-  override def executeBlocked(): RDD[Block] = {
-    var leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
-    var rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
-    leftRDD
+  override def executeBlocked(): RDD[Block] = condition match {
+    case Some(value) =>
+    case None => throw new OpaqueException("Non-equi Join needs condition")
   }
 }
 

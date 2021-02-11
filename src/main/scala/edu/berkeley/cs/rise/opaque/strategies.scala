@@ -78,7 +78,7 @@ object OpaqueOperators extends Strategy {
     case Sort(sortExprs, global, child) if isEncrypted(child) =>
       EncryptedSortExec(sortExprs, global, planLater(child)) :: Nil
 
-    // Used to match equi-joins
+    // Used to match equi joins
     case p @ ExtractEquiJoinKeys(joinType, leftKeys, rightKeys, condition, left, right, _) if isEncrypted(p) =>
       val (leftProjSchema, leftKeysProj, tag) = tagForJoin(leftKeys, left.output, true)
       val (rightProjSchema, rightKeysProj, _) = tagForJoin(rightKeys, right.output, false)
@@ -111,7 +111,7 @@ object OpaqueOperators extends Strategy {
 
       filtered :: Nil
 
-    // Used to match non-equi-joins
+    // Used to match non-equi joins
     case Join(left, right, joinType, condition, hint) =>
       // For perf reasons, `BroadcastNestedLoopJoinExec` prefers to broadcast left side if
       // it's a right join, and broadcast right side if it's a left join.
