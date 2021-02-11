@@ -1160,7 +1160,7 @@ object Utils extends Logging {
 
   def serializeEquiJoinExpression(
     joinType: JoinType, leftKeys: Seq[Expression], rightKeys: Seq[Expression],
-    leftSchema: Seq[Attribute], rightSchema: Seq[Attribute]): Array[Byte] = {
+    leftSchema: Seq[Attribute], rightSchema: Seq[Attribute], condition: Option[Expression] = None): Array[Byte] = {
     val builder = new FlatBufferBuilder
     builder.finish(
       tuix.JoinExpr.createJoinExpr(

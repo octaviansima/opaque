@@ -26,10 +26,7 @@ import org.apache.spark.sql.catalyst.expressions.AttributeSet
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate._
-import org.apache.spark.sql.catalyst.plans.Inner
-import org.apache.spark.sql.catalyst.plans.JoinType
-import org.apache.spark.sql.catalyst.plans.LeftAnti
-import org.apache.spark.sql.catalyst.plans.LeftSemi
+import org.apache.spark.sql.catalyst.plans._
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
 import org.apache.spark.sql.execution.joins.{BuildLeft, BuildRight, BuildSide}
 import org.apache.spark.sql.execution.SparkPlan
@@ -293,8 +290,6 @@ case class EncryptedSortMergeJoinExec(
     val joinExprSer = Utils.serializeEquiJoinExpression(
       joinType, leftKeys, rightKeys, leftSchema, rightSchema)
 
-    println(leftSchema)
-
     timeOperator(
       child.asInstanceOf[OpaqueOperatorExec].executeBlocked(),
       "EncryptedSortMergeJoinExec") { childRDD =>
@@ -315,20 +310,59 @@ case class EncryptedBroadcastNestedLoopJoinExec(
     condition: Option[Expression])
     extends BinaryExecNode with OpaqueOperatorExec {
 
-  // BuildRight means the right relation <=> the broadcast relation.
+  // BuildRight means the left relation <=> the streamed relation
   private val (streamed, broadcast) = buildSide match {
     case BuildRight => (left, right)
     case BuildLeft => (right, left)
   }
+  private val streamedKeys = condition match {
+    case Some(value) =>
+      val i = buildSide match {
+        case BuildRight => 0
+        case BuildLeft => 1
+      }
+      Seq(value.children(i))
+    case None => Seq()
+  }
+  private val broadcastKeys = condition match {
+    case Some(value) =>
+      val i = buildSide match {
+        case BuildRight => 1
+        case BuildLeft => 0
+      }
+      Seq(value.children(i))
+    case None => Seq()
+  }
 
   override def output: Seq[Attribute] = {
-    Nil
+    joinType match {
+      case _: InnerLike =>
+        left.output ++ right.output
+      case LeftOuter =>
+        left.output ++ right.output.map(_.withNullability(true))
+      case RightOuter =>
+        left.output.map(_.withNullability(true)) ++ right.output
+      case FullOuter =>
+        left.output.map(_.withNullability(true)) ++ right.output.map(_.withNullability(true))
+      case j: ExistenceJoin =>
+        left.output :+ j.exists
+      case LeftExistence(_) =>
+        left.output
+      case x =>
+        throw new IllegalArgumentException(
+          s"BroadcastNestedLoopJoin should not take $x as the JoinType")
+    }
   }
+
 
   override def executeBlocked(): RDD[Block] = condition match {
     case Some(value) =>
       var streamedRDD = streamed.asInstanceOf[OpaqueOperatorExec].executeBlocked()
       var broadcastRDD = broadcast.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+
+      val joinExprSer = Utils.serializeEquiJoinExpression(
+        joinType, streamedKeys, broadcastKeys, streamed.output, broadcast.output)
+
       broadcastRDD
     case None => throw new OpaqueException("Non-equi join needs condition")
   }
