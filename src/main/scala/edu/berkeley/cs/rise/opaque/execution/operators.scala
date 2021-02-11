@@ -355,16 +355,26 @@ case class EncryptedBroadcastNestedLoopJoinExec(
   }
 
 
-  override def executeBlocked(): RDD[Block] = condition match {
-    case Some(value) =>
-      var streamedRDD = streamed.asInstanceOf[OpaqueOperatorExec].executeBlocked()
-      var broadcastRDD = broadcast.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+  override def executeBlocked(): RDD[Block] = {
+    val joinExprSer = Utils.serializeJoinExpression(
+        joinType, streamedKeys, broadcastKeys, streamed.output, broadcast.output, condition)
 
-      val joinExprSer = Utils.serializeJoinExpression(
-          joinType, streamedKeys, broadcastKeys, streamed.output, broadcast.output, condition)
+    val streamedRDD = streamed.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+    val broadcastRDD = broadcast.asInstanceOf[OpaqueOperatorExec].executeBlocked()
 
-      broadcastRDD
-    case None => throw new OpaqueException("Non-equi join needs condition")
+    joinType match {
+      case LeftExistence(_) => {
+        defaultJoin(streamedRDD, broadcastRDD, joinExprSer)
+      }
+      case x =>
+        throw new IllegalArgumentException(
+            s"BroadcastNestedLoopJoin should not take $x as the JoinType")
+    }
+  }
+
+  def defaultJoin(streamedRDD: RDD[Block], broadcastRDD: RDD[Block],
+      joinExprSer: Array[Byte]): RDD[Block] = {
+    streamedRDD
   }
 }
 
