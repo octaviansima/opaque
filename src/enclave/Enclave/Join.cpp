@@ -106,8 +106,8 @@ void broadcast_nested_loop_join(
   uint8_t **output_rows, size_t *output_rows_length) {
 
   FlatbuffersJoinExprEvaluator join_expr_eval(join_expr, join_expr_length);
+  FlatbuffersExpressionEvaluator condition_expr_eval(join_expr_eval.get_condition());
   tuix::JoinType join_type = join_expr_eval.get_join_type();
-  const tuix::Expr* condition = join_expr_eval.get_condition();
 
   RowReader inner_r(BufferRefView<tuix::EncryptedBlocks>(inner_rows, inner_rows_length));
   RowWriter w;
@@ -118,7 +118,7 @@ void broadcast_nested_loop_join(
     while (outer_r.has_next()) {
       const tuix::Row *outer = outer_r.next();
       if (join_type == tuix::JoinType_LeftAnti) {
-
+        condition_expr_eval.eval(outer);
       }
     }
   }

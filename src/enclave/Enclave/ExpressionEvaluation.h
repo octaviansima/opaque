@@ -1,5 +1,6 @@
 // -*- c-basic-offset: 2; fill-column: 100 -*-
 
+#include <iostream>
 #include <functional>
 #include <typeinfo>
 #include <cmath>
@@ -604,6 +605,7 @@ private:
 
     case tuix::ExprUnion_GreaterThanOrEqual:
     {
+      std::cout << "it got to here" << std::endl;
       auto ge = static_cast<const tuix::GreaterThanOrEqual *>(expr->expr());
       auto left_offset = eval_helper(row, ge->left());
       auto right_offset = eval_helper(row, ge->right());
