@@ -118,7 +118,6 @@ void broadcast_nested_loop_join(
     while (outer_r.has_next()) {
       const tuix::Row *outer = outer_r.next();
       if (join_type == tuix::JoinType_LeftAnti) {
-        condition_expr_eval.eval(outer);
       }
     }
   }
