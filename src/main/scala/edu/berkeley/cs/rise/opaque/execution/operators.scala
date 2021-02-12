@@ -378,8 +378,7 @@ case class EncryptedBroadcastNestedLoopJoinExec(
         streamedIter.map(streamedBlock => {
           var updatedBlock = streamedBlock
           broadcastIter.foreach(broadcastBlock => {
-            // updatedBlock = Block(enclave.BroadcastNestedLoopJoin(eid, joinExprSer, currBlock, broadcastBlock))
-            updatedBlock
+            updatedBlock = Block(enclave.BroadcastNestedLoopJoin(eid, joinExprSer, updatedBlock.bytes, broadcastBlock.bytes))
           })
           updatedBlock
         })
