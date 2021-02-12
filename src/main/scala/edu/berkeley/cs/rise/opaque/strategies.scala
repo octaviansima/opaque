@@ -121,7 +121,14 @@ object OpaqueOperators extends Strategy {
           getSmallerSide(left, right) else
           getBroadcastSideBNLJ(joinType)
 
-      EncryptedBroadcastNestedLoopJoinExec(planLater(left), planLater(right), desiredBuildSide, joinType, condition) :: Nil
+      val leftKeys = Seq(condition.get.children(0))
+      val rightKeys = Seq(condition.get.children(1))
+      val (leftProjSchema, _, _) = tagForJoin(leftKeys, left.output, true)
+      val (rightProjSchema, _, _) = tagForJoin(rightKeys, right.output, false)
+      val leftProj = EncryptedProjectExec(leftProjSchema, planLater(left))
+      val rightProj = EncryptedProjectExec(rightProjSchema, planLater(right))
+
+      EncryptedBroadcastNestedLoopJoinExec(leftProj, rightProj, desiredBuildSide, joinType, condition) :: Nil
 
     case a @ PhysicalAggregation(groupingExpressions, aggExpressions, resultExpressions, child)
         if (isEncrypted(child) && aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression])) =>
@@ -193,7 +200,7 @@ object OpaqueOperators extends Strategy {
     case _ => Nil
   }
 
-  private def tagForJoin(
+  def tagForJoin(
       keys: Seq[Expression], input: Seq[Attribute], isLeft: Boolean)
     : (Seq[NamedExpression], Seq[NamedExpression], NamedExpression) = {
     val keysProj = keys.zipWithIndex.map { case (k, i) => Alias(k, "_" + i)() }
@@ -201,13 +208,13 @@ object OpaqueOperators extends Strategy {
     (Seq(tag) ++ keysProj ++ input, keysProj.map(_.toAttribute), tag.toAttribute)
   }
 
+  def dropTags(
+      leftOutput: Seq[Attribute], rightOutput: Seq[Attribute]): Seq[NamedExpression] =
+    leftOutput ++ rightOutput
+
   private def sortForJoin(
       leftKeys: Seq[Expression], tag: Expression, input: Seq[Attribute]): Seq[SortOrder] =
     leftKeys.map(k => SortOrder(k, Ascending)) :+ SortOrder(tag, Ascending)
-
-  private def dropTags(
-      leftOutput: Seq[Attribute], rightOutput: Seq[Attribute]): Seq[NamedExpression] =
-    leftOutput ++ rightOutput
 
   private def tagForGlobalAggregate(input: Seq[Attribute])
       : (Seq[NamedExpression], NamedExpression) = {

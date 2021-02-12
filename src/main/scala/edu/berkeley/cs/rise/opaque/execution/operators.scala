@@ -316,21 +316,21 @@ case class EncryptedBroadcastNestedLoopJoinExec(
     case BuildLeft => (right, left)
   }
   private val streamedKeys = condition match {
-    case Some(value) =>
+    case Some(condition) =>
       val i = buildSide match {
         case BuildRight => 0
         case BuildLeft => 1
       }
-      Seq(value.children(i))
+      Seq(condition.children(i))
     case None => Seq()
   }
   private val broadcastKeys = condition match {
-    case Some(value) =>
+    case Some(condition) =>
       val i = buildSide match {
         case BuildRight => 1
         case BuildLeft => 0
       }
-      Seq(value.children(i))
+      Seq(condition.children(i))
     case None => Seq()
   }
 

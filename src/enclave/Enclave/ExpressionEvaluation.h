@@ -1743,6 +1743,33 @@ public:
     return true;
   }
 
+  bool eval_condition(const tuix::Row *row1, const tuix::Row *row2) {
+    auto &row1_evaluators = right_key_evaluators;
+    auto &row2_evaluators = left_key_evaluators;
+
+    builder.Clear();
+    for (uint32_t i = 0; i < row1_evaluators.size(); i++) {
+      const tuix::Field *row1_eval_tmp = row1_evaluators[i]->eval(row1);
+      auto row1_eval_offset = flatbuffers_copy(row1_eval_tmp, builder);
+      const tuix::Field *row2_eval_tmp = row2_evaluators[i]->eval(row2);
+      auto row2_eval_offset = flatbuffers_copy(row2_eval_tmp, builder);
+
+      bool row1_equals_row2 =
+        static_cast<const tuix::BooleanField *>(
+          flatbuffers::GetTemporaryPointer<tuix::Field>(
+            builder,
+            eval_binary_comparison<tuix::EqualTo, std::equal_to>(
+              builder,
+              flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row1_eval_offset),
+              flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row2_eval_offset)))
+          ->value())->value();
+
+      if (!row1_equals_row2) {
+        return false;
+      }
+    }
+    return true;
+  }
   tuix::JoinType get_join_type() {
     return join_type;
   }

@@ -116,7 +116,7 @@ void broadcast_nested_loop_join(
     RowReader inner_r(BufferRefView<tuix::EncryptedBlocks>(inner_rows, inner_rows_length));
     while (inner_r.has_next()) {
       const tuix::Row *inner = inner_r.next();
-      if (join_type == tuix::JoinType_LeftAnti) {
+      if (join_expr_eval.is_primary(inner)) {
       }
     }
   }
