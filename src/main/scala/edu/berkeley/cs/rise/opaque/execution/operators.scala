@@ -354,7 +354,6 @@ case class EncryptedBroadcastNestedLoopJoinExec(
     }
   }
 
-
   override def executeBlocked(): RDD[Block] = {
     val joinExprSer = Utils.serializeJoinExpression(
         joinType, streamedKeys, broadcastKeys, streamed.output, broadcast.output, condition)
@@ -367,8 +366,7 @@ case class EncryptedBroadcastNestedLoopJoinExec(
         defaultJoin(streamedRDD, broadcastRDD, joinExprSer)
       }
       case x =>
-        throw new IllegalArgumentException(
-            s"BroadcastNestedLoopJoin should not take $x as the JoinType")
+        throw new OpaqueException(s"$x JoinType is not yet supported")
     }
   }
 

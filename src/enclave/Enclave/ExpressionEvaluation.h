@@ -1682,7 +1682,9 @@ public:
     }
 
     const tuix::JoinExpr* join_expr = flatbuffers::GetRoot<tuix::JoinExpr>(buf);
+
     join_type = join_expr->join_type();
+    condition = join_expr->condition();
 
     if (join_expr->left_keys()->size() != join_expr->right_keys()->size()) {
       throw std::runtime_error("Mismatched join key lengths");
@@ -1743,11 +1745,16 @@ public:
     return join_type;
   }
 
+  const edu::berkeley::cs::rise::opaque::tuix::Expr* get_condition() {
+    return condition;
+  }
+
 private:
   flatbuffers::FlatBufferBuilder builder;
   tuix::JoinType join_type;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> left_key_evaluators;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> right_key_evaluators;
+  const edu::berkeley::cs::rise::opaque::tuix::Expr* condition;
 };
 
 class AggregateExpressionEvaluator {
