@@ -339,7 +339,10 @@ trait OpaqueOperatorTests extends OpaqueTestsBase { self =>
     val f_data = for (i <- 1 to 32) yield (i, i.toString, i * 10)
     val p = makeDF(p_data, securityLevel, "id", "join_col_1", "x")
     val f = makeDF(f_data, securityLevel, "id", "join_col_2", "x")
-    val df = p.join(f, $"join_col_1" === $"join_col_2", "left_anti").sort($"join_col_1", $"id")
+    val df = p.join(f, $"join_col_1" === $"join_col_2", "left_anti")
+    p.show()
+    f.show()
+    df.show()
     df.collect
   }
 

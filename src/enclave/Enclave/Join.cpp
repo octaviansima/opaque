@@ -5,6 +5,8 @@
 #include "FlatbuffersWriters.h"
 #include "common.h"
 
+#include <iostream>
+
 void non_oblivious_sort_merge_join(
   uint8_t *join_expr, size_t join_expr_length,
   uint8_t *input_rows, size_t input_rows_length,
@@ -103,4 +105,23 @@ void broadcast_nested_loop_join(
   uint8_t *outer_rows, size_t outer_rows_length,
   uint8_t **output_rows, size_t *output_rows_length) {
 
+  FlatbuffersJoinExprEvaluator join_expr_eval(join_expr, join_expr_length);
+  tuix::JoinType join_type = join_expr_eval.get_join_type();
+  const tuix::Expr* condition = join_expr_eval.get_condition();
+
+  RowReader inner_r(BufferRefView<tuix::EncryptedBlocks>(inner_rows, inner_rows_length));
+  RowWriter w;
+
+  while (inner_r.has_next()) {
+    const tuix::Row *inner = inner_r.next();
+    RowReader outer_r(BufferRefView<tuix::EncryptedBlocks>(outer_rows, outer_rows_length));
+    while (outer_r.has_next()) {
+      const tuix::Row *outer = outer_r.next();
+      if (join_type == tuix::JoinType_LeftAnti) {
+
+      }
+    }
+  }
+
+  throw std::runtime_error("got to the end of the function, say lessssssssssssss");
 }
