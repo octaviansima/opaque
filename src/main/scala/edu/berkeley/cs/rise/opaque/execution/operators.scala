@@ -372,7 +372,7 @@ case class EncryptedBroadcastNestedLoopJoinExec(
 
   def defaultJoin(streamedRDD: RDD[Block], broadcastRDD: RDD[Block],
       joinExprSer: Array[Byte]): RDD[Block] = {
-    val broadcast = broadcastRDD.map(block => block.bytes).collect.flatten
+    val broadcast = Utils.ensureCached(broadcastRDD.map(block => block.bytes)).collect.flatten
     streamedRDD.map { block =>
       val (enclave, eid) = Utils.initEnclave()
       Block(enclave.BroadcastNestedLoopJoin(eid, joinExprSer, block.bytes, broadcast))
