@@ -101,22 +101,21 @@ void non_oblivious_sort_merge_join(
 
 void broadcast_nested_loop_join(
   uint8_t *join_expr, size_t join_expr_length,
-  uint8_t *inner_rows, size_t inner_rows_length,
   uint8_t *outer_rows, size_t outer_rows_length,
+  uint8_t *inner_rows, size_t inner_rows_length,
   uint8_t **output_rows, size_t *output_rows_length) {
 
   FlatbuffersJoinExprEvaluator join_expr_eval(join_expr, join_expr_length);
-  FlatbuffersExpressionEvaluator condition_expr_eval(join_expr_eval.get_condition());
   tuix::JoinType join_type = join_expr_eval.get_join_type();
 
-  RowReader inner_r(BufferRefView<tuix::EncryptedBlocks>(inner_rows, inner_rows_length));
+  RowReader outer_r(BufferRefView<tuix::EncryptedBlocks>(outer_rows, outer_rows_length));
   RowWriter w;
 
-  while (inner_r.has_next()) {
-    const tuix::Row *inner = inner_r.next();
-    RowReader outer_r(BufferRefView<tuix::EncryptedBlocks>(outer_rows, outer_rows_length));
-    while (outer_r.has_next()) {
-      const tuix::Row *outer = outer_r.next();
+  while (outer_r.has_next()) {
+    const tuix::Row *outer = outer_r.next();
+    RowReader inner_r(BufferRefView<tuix::EncryptedBlocks>(inner_rows, inner_rows_length));
+    while (inner_r.has_next()) {
+      const tuix::Row *inner = inner_r.next();
       if (join_type == tuix::JoinType_LeftAnti) {
       }
     }

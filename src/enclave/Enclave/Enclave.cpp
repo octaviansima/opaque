@@ -162,18 +162,18 @@ void ecall_non_oblivious_sort_merge_join(uint8_t *join_expr, size_t join_expr_le
 }
 
 void ecall_broadcast_nested_loop_join(uint8_t *join_expr, size_t join_expr_length,
-                                         uint8_t *inner_rows, size_t inner_rows_length,
                                          uint8_t *outer_rows, size_t outer_rows_length,
+                                         uint8_t *inner_rows, size_t inner_rows_length,
                                          uint8_t **output_rows, size_t *output_rows_length) {
   // Guard against operating on arbitrary enclave memory
-  assert(oe_is_outside_enclave(inner_rows, inner_rows_length) == 1);
   assert(oe_is_outside_enclave(outer_rows, outer_rows_length) == 1);
+  assert(oe_is_outside_enclave(inner_rows, inner_rows_length) == 1);
   __builtin_ia32_lfence();
 
   try {
     broadcast_nested_loop_join(join_expr, join_expr_length,
-                                  inner_rows, inner_rows_length,
                                   outer_rows, outer_rows_length,
+                                  inner_rows, inner_rows_length,
                                   output_rows, output_rows_length);
   } catch (const std::runtime_error &e) {
     ocall_throw(e.what());

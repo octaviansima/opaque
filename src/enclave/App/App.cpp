@@ -583,8 +583,8 @@ Java_edu_berkeley_cs_rise_opaque_execution_SGXEnclave_BroadcastNestedLoopJoin(
                        ecall_broadcast_nested_loop_join(
                          (oe_enclave_t*)eid,
                          join_expr_ptr, join_expr_length,
-                         inner_rows_ptr, inner_rows_length,
                          outer_rows_ptr, outer_rows_length,
+                         inner_rows_ptr, inner_rows_length,
                          &output_rows, &output_rows_length));
   }
 
