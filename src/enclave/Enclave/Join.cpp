@@ -27,7 +27,7 @@ void non_oblivious_sort_merge_join(
 
     if (join_expr_eval.is_primary(current)) {
       if (last_primary_of_group.get()
-          && join_expr_eval.is_same_group(last_primary_of_group.get(), current)) {
+          && join_expr_eval.eval_condition(last_primary_of_group.get(), current)) {
         // Add this primary row to the current group
         primary_group.append(current);
         last_primary_of_group.set(current);
@@ -52,13 +52,13 @@ void non_oblivious_sort_merge_join(
     } else {
       // Output the joined rows resulting from this foreign row
       if (last_primary_of_group.get()
-          && join_expr_eval.is_same_group(last_primary_of_group.get(), current)) {
+          && join_expr_eval.eval_condition(last_primary_of_group.get(), current)) {
         auto primary_group_buffer = primary_group.output_buffer();
         RowReader primary_group_reader(primary_group_buffer.view());
         while (primary_group_reader.has_next()) {
           const tuix::Row *primary = primary_group_reader.next();
 
-          if (!join_expr_eval.is_same_group(primary, current)) {
+          if (!join_expr_eval.eval_condition(primary, current)) {
             throw std::runtime_error(
               std::string("Invariant violation: rows of primary_group "
                           "are not of the same group: ")
@@ -116,7 +116,9 @@ void broadcast_nested_loop_join(
     RowReader inner_r(BufferRefView<tuix::EncryptedBlocks>(inner_rows, inner_rows_length));
     while (inner_r.has_next()) {
       const tuix::Row *inner = inner_r.next();
-      if (join_expr_eval.is_primary(inner)) {
+      if (join_expr_eval.eval_condition(outer, inner)) {
+        std::cout << to_string(outer) << std::endl;
+        std::cout << to_string(inner) << std::endl;
       }
     }
   }
