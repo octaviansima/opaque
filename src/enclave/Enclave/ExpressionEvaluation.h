@@ -250,7 +250,83 @@ public:
     return flatbuffers::GetTemporaryPointer<tuix::Field>(builder, result_offset);
   }
 
+  /**
+   * Evaluate the stored expression on two pre-computed fields. Return a Field containing the result.
+   * Note: this is different from eval(Row *row) because it assumes the builder has been properly
+   * managed by the calling function
+   */
+  const tuix::Field *eval(const tuix::Row *row1, const tuix::Row *row2) {
+    /**
+    flatbuffers::Offset<tuix::Field> result_offset = eval_helper(row1, row2, expr);
+    return flatbuffers::GetTemporaryPointer<tuix::Field>(builder, result_offset);
+    */
+    return NULL;
+  }
+
 private:
+  /**
+  flatbuffers::Offset<tuix::Field> eval_helper(const tuix::Row *row1,
+      const tuix::Row *row2,
+      const tuix::Expr *expr) {
+    switch (expr->expr_type()) {
+      case tuix::ExprUnion_LessThan:
+      {
+        auto lt = static_cast<const tuix::LessThan *>(expr->expr());
+        auto left_offset = eval_helper(row, lt->left());
+        auto right_offset = eval_helper(row, lt->right());
+        return eval_binary_comparison<tuix::LessThan, std::less>(
+          builder,
+          flatbuffers::GetTemporaryPointer(builder, left_offset),
+          flatbuffers::GetTemporaryPointer(builder, right_offset));
+      }
+
+      case tuix::ExprUnion_LessThanOrEqual:
+      {
+        auto le = static_cast<const tuix::LessThanOrEqual *>(expr->expr());
+        auto left_offset = eval_helper(row, le->left());
+        auto right_offset = eval_helper(row, le->right());
+        return eval_binary_comparison<tuix::LessThanOrEqual, std::less_equal>(
+          builder,
+          flatbuffers::GetTemporaryPointer(builder, left_offset),
+          flatbuffers::GetTemporaryPointer(builder, right_offset));
+      }
+
+      case tuix::ExprUnion_GreaterThan:
+      {
+        auto gt = static_cast<const tuix::GreaterThan *>(expr->expr());
+        auto left_offset = eval_helper(row, gt->left());
+        auto right_offset = eval_helper(row, gt->right());
+        return eval_binary_comparison<tuix::GreaterThan, std::greater>(
+          builder,
+          flatbuffers::GetTemporaryPointer(builder, left_offset),
+          flatbuffers::GetTemporaryPointer(builder, right_offset));
+      }
+
+      case tuix::ExprUnion_GreaterThanOrEqual:
+      {
+        std::cout << "it got to here" << std::endl;
+        auto ge = static_cast<const tuix::GreaterThanOrEqual *>(expr->expr());
+        auto left_offset = eval_helper(row, ge->left());
+        auto right_offset = eval_helper(row, ge->right());
+        return eval_binary_comparison<tuix::GreaterThanOrEqual, std::greater_equal>(
+          builder,
+          flatbuffers::GetTemporaryPointer(builder, left_offset),
+          flatbuffers::GetTemporaryPointer(builder, right_offset));
+      }
+
+      case tuix::ExprUnion_EqualTo:
+      {
+        auto eq = static_cast<const tuix::EqualTo *>(expr->expr());
+        auto left_offset = eval_helper(row, eq->left());
+        auto right_offset = eval_helper(row, eq->right());
+        return eval_binary_comparison<tuix::EqualTo, std::equal_to>(
+          builder,
+          flatbuffers::GetTemporaryPointer(builder, left_offset),
+          flatbuffers::GetTemporaryPointer(builder, right_offset));
+      }
+    }
+  }
+  */
   /**
    * Evaluate the given expression on the given row. Return the offset (within builder) of the Field
    * containing the result. This offset is only valid until the next call to eval.
@@ -1723,15 +1799,19 @@ public:
     for (uint32_t i = 0; i < row1_evaluators.size(); i++) {
       const tuix::Field *row1_eval_tmp = row1_evaluators[i]->eval(row1);
       auto row1_eval_offset = flatbuffers_copy(row1_eval_tmp, builder);
+      auto row1_field = flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row1_eval_offset);
+
       const tuix::Field *row2_eval_tmp = row2_evaluators[i]->eval(row2);
       auto row2_eval_offset = flatbuffers_copy(row2_eval_tmp, builder);
+      auto row2_field = flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row2_eval_offset);
 
-      auto comparison = eval_binary_comparison<tuix::EqualTo, std::equal_to>(
+
+      flatbuffers::Offset<tuix::Field> comparison = eval_binary_comparison<tuix::EqualTo, std::equal_to>(
         builder,
-        flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row1_eval_offset),
-        flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row2_eval_offset));
+        row1_field,
+        row2_field);
       if (condition != NULL) {
-
+        FlatbuffersExpressionEvaluator condition_eval(condition);
       }
       bool row1_equals_row2 =
         static_cast<const tuix::BooleanField *>(
