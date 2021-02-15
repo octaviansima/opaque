@@ -1726,15 +1726,18 @@ public:
       const tuix::Field *row2_eval_tmp = row2_evaluators[i]->eval(row2);
       auto row2_eval_offset = flatbuffers_copy(row2_eval_tmp, builder);
 
+      auto comparison = eval_binary_comparison<tuix::EqualTo, std::equal_to>(
+        builder,
+        flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row1_eval_offset),
+        flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row2_eval_offset));
+      if (condition != NULL) {
+
+      }
       bool row1_equals_row2 =
         static_cast<const tuix::BooleanField *>(
           flatbuffers::GetTemporaryPointer<tuix::Field>(
             builder,
-            eval_binary_comparison<tuix::EqualTo, std::equal_to>(
-              builder,
-              flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row1_eval_offset),
-              flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row2_eval_offset)))
-          ->value())->value();
+            comparison)->value())->value();
 
       if (!row1_equals_row2) {
         return false;
