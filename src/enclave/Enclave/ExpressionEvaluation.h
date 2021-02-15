@@ -1801,6 +1801,8 @@ public:
           flatbuffers::GetTemporaryPointer<tuix::Field>(
             builder,
             comparison)->value())->value();
+
+      /** Check for non-equi joins */
       if (condition != NULL) {
         FlatbuffersExpressionEvaluator condition_eval(condition);
         const tuix::Field *condition_result = condition_eval.eval(row1_field, row2_field);

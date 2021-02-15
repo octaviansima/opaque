@@ -117,6 +117,7 @@ void broadcast_nested_loop_join(
     while (inner_r.has_next()) {
       const tuix::Row *inner = inner_r.next();
       if (join_expr_eval.eval_condition(outer, inner)) {
+        std::cout << "The two rows are: " << std::endl;
         std::cout << to_string(outer) << std::endl;
         std::cout << to_string(inner) << std::endl;
       }
