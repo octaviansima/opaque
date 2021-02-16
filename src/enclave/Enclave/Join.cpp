@@ -106,23 +106,37 @@ void broadcast_nested_loop_join(
   uint8_t **output_rows, size_t *output_rows_length) {
 
   FlatbuffersJoinExprEvaluator join_expr_eval(join_expr, join_expr_length);
-  tuix::JoinType join_type = join_expr_eval.get_join_type();
+  const tuix::JoinType join_type = join_expr_eval.get_join_type();
 
   RowReader outer_r(BufferRefView<tuix::EncryptedBlocks>(outer_rows, outer_rows_length));
   RowWriter w;
 
   while (outer_r.has_next()) {
     const tuix::Row *outer = outer_r.next();
+    bool o_i_match = false;
+
     RowReader inner_r(BufferRefView<tuix::EncryptedBlocks>(inner_rows, inner_rows_length));
+    const tuix::Row *inner;
     while (inner_r.has_next()) {
-      const tuix::Row *inner = inner_r.next();
+      inner = inner_r.next();
       if (join_expr_eval.eval_condition(outer, inner)) {
-        std::cout << "The two rows are: " << std::endl;
-        std::cout << to_string(outer) << std::endl;
-        std::cout << to_string(inner) << std::endl;
+        o_i_match = true;
       }
     }
-  }
 
+    switch(join_type) {
+      case tuix::JoinType_LeftAnti:
+        if (!o_i_match) {
+          std::cout << "The two rows are: " << std::endl;
+          std::cout << to_string(outer) << std::endl;
+          std::cout << to_string(inner) << std::endl;
+        } else {}
+        break;
+      default:
+        throw std::runtime_error(
+            std::string("Join type not supported: ")
+            + std::string(to_string(join_type)));
+    }
+  }
   throw std::runtime_error("got to the end of the function, say lessssssssssssss");
 }

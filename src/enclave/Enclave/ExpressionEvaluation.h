@@ -306,12 +306,7 @@ private:
           field2);
       }
       default:
-        /**
-        throw std::runtime_error(
-          std::string("Binary expression not supported: ")
-          + std::string(to_string(expr)));
-        */
-       return NULL;
+        return NULL;
     }
   }
   /**
