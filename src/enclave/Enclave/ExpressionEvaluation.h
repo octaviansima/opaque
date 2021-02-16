@@ -7,6 +7,8 @@
 #include <limits>
 
 #include "Flatbuffers.h"
+#include "FlatbuffersReaders.h"
+#include "FlatbuffersWriters.h"
 
 int printf(const char *fmt, ...);
 
@@ -1790,6 +1792,7 @@ public:
     auto &row2_evaluators = is_primary(row2) ? left_key_evaluators : right_key_evaluators;
 
     builder.Clear();
+    bool row1_equals_row2;
     for (uint32_t i = 0; i < row1_evaluators.size(); i++) {
       const tuix::Field *row1_eval_tmp = row1_evaluators[i]->eval(row1);
       auto row1_eval_offset = flatbuffers_copy(row1_eval_tmp, builder);
@@ -1804,22 +1807,30 @@ public:
         builder,
         row1_field,
         row2_field);
-      bool row1_equals_row2 =
+      row1_equals_row2 =
         static_cast<const tuix::BooleanField *>(
           flatbuffers::GetTemporaryPointer<tuix::Field>(
             builder,
             comparison)->value())->value();
 
-      /** Check for non-equi joins */
-      if (condition != NULL) {
-        FlatbuffersExpressionEvaluator condition_eval(condition);
-        const tuix::Field *condition_result = condition_eval.eval(row1_field, row2_field);
-        row1_equals_row2 = static_cast<const tuix::BooleanField *>(condition_result->value())->value();
-      }
 
       if (!row1_equals_row2) {
         return false;
       }
+    }
+
+    /** Check for non-equi joins */
+    if (condition != NULL) {
+      RowWriter w;
+      w.append(row1, row2);
+      auto buffer = w.output_buffer();
+      RowReader r(buffer.view());
+      const tuix::Row *concated_row = r.next();
+
+      FlatbuffersExpressionEvaluator condition_eval(condition);
+      const tuix::Field *condition_result = condition_eval.eval(concated_row);
+      w.clear();
+      return static_cast<const tuix::BooleanField *>(condition_result->value())->value();
     }
     return true;
   }
