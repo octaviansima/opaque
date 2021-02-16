@@ -1792,6 +1792,7 @@ public:
       auto row2_eval_offset = flatbuffers_copy(row2_eval_tmp, builder);
       auto row2_field = flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row2_eval_offset);
 
+      /* Assume equi join */
       flatbuffers::Offset<tuix::Field> comparison = eval_binary_comparison<tuix::EqualTo, std::equal_to>(
         builder,
         row1_field,
