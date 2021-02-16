@@ -1781,18 +1781,19 @@ public:
   }
 
 /* Returns the row evaluator corresponding to the primary row */
-  const tuix::Row *get_primary_row_eval(
+  const tuix::Row *get_primary_row(
       const tuix::Row *row1, const tuix::Row *row2) {
     return is_primary(row1) ? row1 : row2;
   }
 
   /** Return true if the two rows are from the same join group. */
   bool eval_condition(const tuix::Row *row1, const tuix::Row *row2) {
-    auto &row1_evaluators = is_primary(row1) ? left_key_evaluators : right_key_evaluators;
-    auto &row2_evaluators = is_primary(row2) ? left_key_evaluators : right_key_evaluators;
-
     builder.Clear();
     bool row1_equals_row2;
+
+    /* Check equality for equi joins */
+    auto &row1_evaluators = is_primary(row1) ? left_key_evaluators : right_key_evaluators;
+    auto &row2_evaluators = is_primary(row2) ? left_key_evaluators : right_key_evaluators;
     for (uint32_t i = 0; i < row1_evaluators.size(); i++) {
       const tuix::Field *row1_eval_tmp = row1_evaluators[i]->eval(row1);
       auto row1_eval_offset = flatbuffers_copy(row1_eval_tmp, builder);
@@ -1802,7 +1803,6 @@ public:
       auto row2_eval_offset = flatbuffers_copy(row2_eval_tmp, builder);
       auto row2_field = flatbuffers::GetTemporaryPointer<tuix::Field>(builder, row2_eval_offset);
 
-      /* Assume equi join */
       flatbuffers::Offset<tuix::Field> comparison = eval_binary_comparison<tuix::EqualTo, std::equal_to>(
         builder,
         row1_field,
@@ -1813,14 +1813,13 @@ public:
             builder,
             comparison)->value())->value();
 
-
       if (!row1_equals_row2) {
         return false;
       }
     }
 
-    /** Check for non-equi joins */
-    if (condition != NULL) {
+    /* Check condition for non-equi joins */
+    if (!is_equi_join) {
       RowWriter w;
       w.append(row1, row2);
       auto buffer = w.output_buffer();

@@ -349,6 +349,7 @@ case class EncryptedBroadcastNestedLoopJoinExec(
   def defaultJoin(leftRDD: RDD[Block], rightRDD: RDD[Block],
       joinExprSer: Array[Byte]): RDD[Block] = {
     buildSide match {
+      // Broadcast right
       case BuildRight => {
         val broadcast = Utils.ensureCached(rightRDD.map(block => block.bytes)).collect.flatten
         leftRDD.map { block =>
@@ -356,6 +357,7 @@ case class EncryptedBroadcastNestedLoopJoinExec(
           Block(enclave.BroadcastNestedLoopJoin(eid, joinExprSer, block.bytes, broadcast))
         }
       }
+      // Broadcast left
       case BuildLeft => {
         val broadcast = Utils.ensureCached(leftRDD.map(block => block.bytes)).collect.flatten
         rightRDD.map { block =>

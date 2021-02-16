@@ -137,6 +137,7 @@ object OpaqueOperators extends Strategy {
 
       val tagsDropped = joinType match {
         case LeftAnti => EncryptedProjectExec(left.output, joined)
+        case _ => throw new OpaqueException("Join type not supported: " + joinType)
       }
 
       tagsDropped :: Nil
@@ -211,7 +212,7 @@ object OpaqueOperators extends Strategy {
     case _ => Nil
   }
 
-  def tagForJoin(
+  private def tagForJoin(
       keys: Seq[Expression], input: Seq[Attribute], isLeft: Boolean)
     : (Seq[NamedExpression], Seq[NamedExpression], NamedExpression) = {
     val keysProj = keys.zipWithIndex.map { case (k, i) => Alias(k, "_" + i)() }
@@ -219,7 +220,7 @@ object OpaqueOperators extends Strategy {
     (Seq(tag) ++ keysProj ++ input, keysProj.map(_.toAttribute), tag.toAttribute)
   }
 
-  def dropTags(
+  private def dropTags(
       leftOutput: Seq[Attribute], rightOutput: Seq[Attribute]): Seq[NamedExpression] =
     leftOutput ++ rightOutput
 

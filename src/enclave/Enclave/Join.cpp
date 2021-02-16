@@ -119,15 +119,13 @@ void broadcast_nested_loop_join(
     const tuix::Row *inner;
     while (inner_r.has_next()) {
       inner = inner_r.next();
-      if (join_expr_eval.eval_condition(outer, inner)) {
-        o_i_match = true;
-      }
+      o_i_match |= join_expr_eval.eval_condition(outer, inner);
     }
 
     switch(join_type) {
       case tuix::JoinType_LeftAnti:
         if (!o_i_match) {
-          w.append(join_expr_eval.get_primary_row_eval(outer, inner));
+          w.append(join_expr_eval.get_primary_row(outer, inner));
         }
         break;
       default:

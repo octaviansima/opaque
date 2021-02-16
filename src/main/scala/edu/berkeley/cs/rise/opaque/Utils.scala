@@ -1180,6 +1180,7 @@ object Utils extends Logging {
           case UsingJoin(_, _) => ???
           // scalastyle:on
         },
+        // Non-zero when equi join
         leftKeys match {
           case Some(leftKeys) =>
           tuix.JoinExpr.createLeftKeysVector(
@@ -1187,6 +1188,7 @@ object Utils extends Logging {
             leftKeys.map(e => flatbuffersSerializeExpression(builder, e, leftSchema)).toArray)
           case None => 0
         },
+        // Non-zero when equi join
         rightKeys match {
           case Some(rightKeys) =>
           tuix.JoinExpr.createRightKeysVector(
@@ -1194,6 +1196,7 @@ object Utils extends Logging {
             rightKeys.map(e => flatbuffersSerializeExpression(builder, e, rightSchema)).toArray)
           case None => 0
         },
+        // Non-zero when non-equi join
         condition match {
           case Some(condition) =>
             flatbuffersSerializeExpression(builder, condition, leftSchema ++ rightSchema)
