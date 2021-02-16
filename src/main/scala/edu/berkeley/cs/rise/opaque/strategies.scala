@@ -129,7 +129,18 @@ object OpaqueOperators extends Strategy {
       val rightProj = EncryptedProjectExec(rightProjSchema, planLater(right))
 
       // FIX: BuildLeft fails
-      EncryptedBroadcastNestedLoopJoinExec(leftProj, rightProj, desiredBuildSide, joinType, condition) :: Nil
+      val joined = EncryptedBroadcastNestedLoopJoinExec(
+        leftProj,
+        rightProj,
+        desiredBuildSide,
+        joinType,
+        condition)
+
+      val tagsDropped = joinType match {
+        case LeftAnti => EncryptedProjectExec(left.output, joined)
+      }
+
+      tagsDropped :: Nil
 
     case a @ PhysicalAggregation(groupingExpressions, aggExpressions, resultExpressions, child)
         if (isEncrypted(child) && aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression])) =>
