@@ -288,7 +288,7 @@ case class EncryptedSortMergeJoinExec(
 
   override def executeBlocked(): RDD[Block] = {
     val joinExprSer = Utils.serializeJoinExpression(
-      joinType, leftKeys, rightKeys, leftSchema, rightSchema)
+      joinType, Some(leftKeys), Some(rightKeys), leftSchema, rightSchema)
 
     timeOperator(
       child.asInstanceOf[OpaqueOperatorExec].executeBlocked(),
@@ -309,15 +309,6 @@ case class EncryptedBroadcastNestedLoopJoinExec(
     joinType: JoinType,
     condition: Option[Expression])
     extends BinaryExecNode with OpaqueOperatorExec {
-
-  private val leftKeys = condition match {
-    case Some(condition) => Seq(condition.children(0))
-    case _ => throw new OpaqueException("Non-equi join needs a condition, non provided")
-  }
-  private val rightKeys = condition match {
-    case Some(condition) => Seq(condition.children(1))
-    case _ => throw new OpaqueException("Non-equi join needs a condition, non provided")
-  }
 
   override def output: Seq[Attribute] = {
     joinType match {
@@ -341,7 +332,7 @@ case class EncryptedBroadcastNestedLoopJoinExec(
 
   override def executeBlocked(): RDD[Block] = {
     val joinExprSer = Utils.serializeJoinExpression(
-        joinType, leftKeys, rightKeys, left.output, right.output, condition)
+        joinType, None, None, left.output, right.output, condition)
 
     val leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
     val rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()

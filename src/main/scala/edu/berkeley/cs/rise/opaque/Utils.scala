@@ -1159,7 +1159,7 @@ object Utils extends Logging {
   }
 
   def serializeJoinExpression(
-    joinType: JoinType, leftKeys: Seq[Expression], rightKeys: Seq[Expression],
+    joinType: JoinType, leftKeys: Option[Seq[Expression]], rightKeys: Option[Seq[Expression]],
     leftSchema: Seq[Attribute], rightSchema: Seq[Attribute],
     condition: Option[Expression] = None): Array[Byte] = {
     val builder = new FlatBufferBuilder
@@ -1180,12 +1180,20 @@ object Utils extends Logging {
           case UsingJoin(_, _) => ???
           // scalastyle:on
         },
-        tuix.JoinExpr.createLeftKeysVector(
-          builder,
-          leftKeys.map(e => flatbuffersSerializeExpression(builder, e, leftSchema)).toArray),
-        tuix.JoinExpr.createRightKeysVector(
-          builder,
-          rightKeys.map(e => flatbuffersSerializeExpression(builder, e, rightSchema)).toArray),
+        leftKeys match {
+          case Some(leftKeys) =>
+          tuix.JoinExpr.createLeftKeysVector(
+            builder,
+            leftKeys.map(e => flatbuffersSerializeExpression(builder, e, leftSchema)).toArray)
+          case None => 0
+        },
+        rightKeys match {
+          case Some(rightKeys) =>
+          tuix.JoinExpr.createRightKeysVector(
+            builder,
+            rightKeys.map(e => flatbuffersSerializeExpression(builder, e, rightSchema)).toArray)
+          case None => 0
+        },
         condition match {
           case Some(condition) =>
             flatbuffersSerializeExpression(builder, condition, leftSchema ++ rightSchema)
