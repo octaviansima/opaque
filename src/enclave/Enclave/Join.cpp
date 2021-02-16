@@ -127,16 +127,14 @@ void broadcast_nested_loop_join(
     switch(join_type) {
       case tuix::JoinType_LeftAnti:
         if (!o_i_match) {
-          std::cout << "The two rows are: " << std::endl;
-          std::cout << to_string(outer) << std::endl;
-          std::cout << to_string(inner) << std::endl;
-        } else {}
+          w.append(join_expr_eval.get_primary_row_eval(outer, inner));
+        }
         break;
       default:
         throw std::runtime_error(
-            std::string("Join type not supported: ")
-            + std::string(to_string(join_type)));
+          std::string("Join type not supported: ")
+          + std::string(to_string(join_type)));
     }
   }
-  throw std::runtime_error("got to the end of the function, say lessssssssssssss");
+  w.output_buffer(output_rows, output_rows_length);
 }

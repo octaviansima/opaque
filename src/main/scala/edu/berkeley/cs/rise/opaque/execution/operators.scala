@@ -363,8 +363,6 @@ case class EncryptedBroadcastNestedLoopJoinExec(
 
     joinType match {
       case LeftExistence(_) => {
-        println(streamed.output)
-        println(broadcast.output)
         defaultJoin(streamedRDD, broadcastRDD, joinExprSer)
       }
       case x =>

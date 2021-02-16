@@ -1772,6 +1772,12 @@ public:
       row->field_values()->Get(0)->value())->value() == 0;
   }
 
+/* Returns the row evaluator corresponding to the primary row */
+  const tuix::Row *get_primary_row_eval(
+      const tuix::Row *row1, const tuix::Row *row2) {
+    return is_primary(row1) ? row1 : row2;
+  }
+
   /** Return true if the two rows are from the same join group. */
   bool eval_condition(const tuix::Row *row1, const tuix::Row *row2) {
     auto &row1_evaluators = is_primary(row1) ? left_key_evaluators : right_key_evaluators;
