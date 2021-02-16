@@ -128,7 +128,6 @@ object OpaqueOperators extends Strategy {
       val leftProj = EncryptedProjectExec(leftProjSchema, planLater(left))
       val rightProj = EncryptedProjectExec(rightProjSchema, planLater(right))
 
-      // FIX: BuildLeft fails
       val joined = EncryptedBroadcastNestedLoopJoinExec(
         leftProj,
         rightProj,

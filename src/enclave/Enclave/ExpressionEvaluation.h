@@ -663,7 +663,6 @@ private:
 
     case tuix::ExprUnion_GreaterThanOrEqual:
     {
-      std::cout << "it got to here" << std::endl;
       auto ge = static_cast<const tuix::GreaterThanOrEqual *>(expr->expr());
       auto left_offset = eval_helper(row, ge->left());
       auto right_offset = eval_helper(row, ge->right());
@@ -1745,21 +1744,28 @@ public:
 
     join_type = join_expr->join_type();
     condition = join_expr->condition();
+    is_equi_join = false;
 
-    if (join_expr->left_keys()->size() != join_expr->right_keys()->size()) {
-      throw std::runtime_error("Mismatched join key lengths");
-    }
-    for (auto key_it = join_expr->left_keys()->begin();
-         key_it != join_expr->left_keys()->end(); ++key_it) {
-      left_key_evaluators.emplace_back(
-        std::unique_ptr<FlatbuffersExpressionEvaluator>(
-          new FlatbuffersExpressionEvaluator(*key_it)));
-    }
-    for (auto key_it = join_expr->right_keys()->begin();
-         key_it != join_expr->right_keys()->end(); ++key_it) {
-      right_key_evaluators.emplace_back(
-        std::unique_ptr<FlatbuffersExpressionEvaluator>(
-          new FlatbuffersExpressionEvaluator(*key_it)));
+    if (join_expr->left_keys() != NULL && join_expr->right_keys() != NULL) {
+      is_equi_join = true;
+      if (condition != NULL) {
+        throw std::runtime_error("Equi join cannot have condition");
+      }
+      if (join_expr->left_keys()->size() != join_expr->right_keys()->size()) {
+        throw std::runtime_error("Mismatched join key lengths");
+      }
+      for (auto key_it = join_expr->left_keys()->begin();
+          key_it != join_expr->left_keys()->end(); ++key_it) {
+        left_key_evaluators.emplace_back(
+          std::unique_ptr<FlatbuffersExpressionEvaluator>(
+            new FlatbuffersExpressionEvaluator(*key_it)));
+      }
+      for (auto key_it = join_expr->right_keys()->begin();
+          key_it != join_expr->right_keys()->end(); ++key_it) {
+        right_key_evaluators.emplace_back(
+          std::unique_ptr<FlatbuffersExpressionEvaluator>(
+            new FlatbuffersExpressionEvaluator(*key_it)));
+      }
     }
   }
 
@@ -1822,13 +1828,10 @@ public:
     return join_type;
   }
 
-  const edu::berkeley::cs::rise::opaque::tuix::Expr* get_condition() {
-    return condition;
-  }
-
 private:
   flatbuffers::FlatBufferBuilder builder;
   tuix::JoinType join_type;
+  bool is_equi_join;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> left_key_evaluators;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> right_key_evaluators;
   const edu::berkeley::cs::rise::opaque::tuix::Expr* condition;
