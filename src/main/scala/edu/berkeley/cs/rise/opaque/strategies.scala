@@ -132,7 +132,7 @@ object OpaqueOperators extends Strategy {
       val joined = EncryptedBroadcastNestedLoopJoinExec(
         leftProj,
         rightProj,
-        BuildRight,
+        desiredBuildSide,
         joinType,
         condition)
 

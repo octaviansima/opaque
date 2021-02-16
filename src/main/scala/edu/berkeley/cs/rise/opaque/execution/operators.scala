@@ -310,28 +310,13 @@ case class EncryptedBroadcastNestedLoopJoinExec(
     condition: Option[Expression])
     extends BinaryExecNode with OpaqueOperatorExec {
 
-  // BuildRight means the left relation <=> the streamed relation
-  private val (streamed, broadcast) = buildSide match {
-    case BuildRight => (left, right)
-    case BuildLeft => (right, left)
+  private val leftKeys = condition match {
+    case Some(condition) => Seq(condition.children(0))
+    case _ => throw new OpaqueException("Non-equi join needs a condition, non provided")
   }
-  private val streamedKeys = condition match {
-    case Some(condition) =>
-      val i = buildSide match {
-        case BuildRight => 0
-        case BuildLeft => 1
-      }
-      Seq(condition.children(i))
-    case None => Seq()
-  }
-  private val broadcastKeys = condition match {
-    case Some(condition) =>
-      val i = buildSide match {
-        case BuildRight => 1
-        case BuildLeft => 0
-      }
-      Seq(condition.children(i))
-    case None => Seq()
+  private val rightKeys = condition match {
+    case Some(condition) => Seq(condition.children(1))
+    case _ => throw new OpaqueException("Non-equi join needs a condition, non provided")
   }
 
   override def output: Seq[Attribute] = {
@@ -356,26 +341,37 @@ case class EncryptedBroadcastNestedLoopJoinExec(
 
   override def executeBlocked(): RDD[Block] = {
     val joinExprSer = Utils.serializeJoinExpression(
-        joinType, streamedKeys, broadcastKeys, streamed.output, broadcast.output, condition)
+        joinType, leftKeys, rightKeys, left.output, right.output, condition)
 
-    val streamedRDD = streamed.asInstanceOf[OpaqueOperatorExec].executeBlocked()
-    val broadcastRDD = broadcast.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+    val leftRDD = left.asInstanceOf[OpaqueOperatorExec].executeBlocked()
+    val rightRDD = right.asInstanceOf[OpaqueOperatorExec].executeBlocked()
 
     joinType match {
       case LeftExistence(_) => {
-        defaultJoin(streamedRDD, broadcastRDD, joinExprSer)
+        defaultJoin(leftRDD, rightRDD, joinExprSer)
       }
       case x =>
         throw new OpaqueException(s"$x JoinType is not yet supported")
     }
   }
 
-  def defaultJoin(streamedRDD: RDD[Block], broadcastRDD: RDD[Block],
+  def defaultJoin(leftRDD: RDD[Block], rightRDD: RDD[Block],
       joinExprSer: Array[Byte]): RDD[Block] = {
-    val broadcast = Utils.ensureCached(broadcastRDD.map(block => block.bytes)).collect.flatten
-    streamedRDD.map { block =>
-      val (enclave, eid) = Utils.initEnclave()
-      Block(enclave.BroadcastNestedLoopJoin(eid, joinExprSer, block.bytes, broadcast))
+    buildSide match {
+      case BuildRight => {
+        val broadcast = Utils.ensureCached(rightRDD.map(block => block.bytes)).collect.flatten
+        leftRDD.map { block =>
+          val (enclave, eid) = Utils.initEnclave()
+          Block(enclave.BroadcastNestedLoopJoin(eid, joinExprSer, block.bytes, broadcast))
+        }
+      }
+      case BuildLeft => {
+        val broadcast = Utils.ensureCached(leftRDD.map(block => block.bytes)).collect.flatten
+        rightRDD.map { block =>
+          val (enclave, eid) = Utils.initEnclave()
+          Block(enclave.BroadcastNestedLoopJoin(eid, joinExprSer, broadcast, block.bytes))
+        }
+      }
     }
   }
 }
