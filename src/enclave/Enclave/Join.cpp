@@ -103,9 +103,9 @@ void non_oblivious_sort_merge_join(
 }
 
 /** C++ implementation of a broadcast nested loop join.
- * Which row is broadcasted and which row is not is handled in Scala.
+ * Which row is broadcast and which row is not is handled in Scala.
  * DOES NOT rely on rows to be tagged primary or secondary, and that
- * assumption will break the implementation. In other words, 
+ * assumption will break the implementation. In other words,
  * outer is always left and inner is always right.
  */
 void broadcast_nested_loop_join(
