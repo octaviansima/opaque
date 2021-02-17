@@ -7,8 +7,6 @@
 #include <limits>
 
 #include "Flatbuffers.h"
-#include "FlatbuffersReaders.h"
-#include "FlatbuffersWriters.h"
 
 int printf(const char *fmt, ...);
 
@@ -1765,15 +1763,19 @@ public:
 
     /* Check condition for non-equi joins */
     if (!is_equi_join) {
-      RowWriter w;
-      w.append(row1, row2);
-      auto buffer = w.output_buffer();
-      RowReader r(buffer.view());
-      const tuix::Row *concated_row = r.next();
+      std::vector<flatbuffers::Offset<tuix::Field>> concat_fields;
+      for (auto field : *row1->field_values()) {
+        concat_fields.push_back(flatbuffers_copy<tuix::Field>(field, builder));
+      }
+      for (auto field : *row2->field_values()) {
+        concat_fields.push_back(flatbuffers_copy<tuix::Field>(field, builder));
+      }
+      flatbuffers::Offset<tuix::Row> concat = tuix::CreateRowDirect(builder, &concat_fields);
+      const tuix::Row *concat_ptr = flatbuffers::GetTemporaryPointer<tuix::Row>(builder, concat);
 
       FlatbuffersExpressionEvaluator condition_eval(condition);
-      const tuix::Field *condition_result = condition_eval.eval(concated_row);
-      w.clear();
+      const tuix::Field *condition_result = condition_eval.eval(concat_ptr);
+
       return static_cast<const tuix::BooleanField *>(condition_result->value())->value();
     }
     return true;
