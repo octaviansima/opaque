@@ -1301,7 +1301,8 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray)
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
         )
 
       case c @ Count(children) =>
@@ -1340,7 +1341,8 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray)
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
         )
 
       case f @ First(child, false) =>
@@ -1379,7 +1381,9 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray))
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
+        )
 
       case l @ Last(child, false) =>
         val last = l.aggBufferAttributes(0)
@@ -1417,7 +1421,9 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray))
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
+        )
 
       case m @ Max(child) =>
         val max = m.aggBufferAttributes(0)
@@ -1450,7 +1456,9 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray))
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
+        )
 
       case m @ Min(child) =>
         val min = m.aggBufferAttributes(0)
@@ -1483,7 +1491,9 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray))
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
+        )
 
       case s @ Sum(child) =>
         val sum = s.aggBufferAttributes(0)
@@ -1521,7 +1531,9 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray))
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
+        )
 
       case vs @ ScalaUDAF(Seq(child), _: VectorSum, _, _) =>
         val sum = vs.aggBufferAttributes(0)
@@ -1556,7 +1568,9 @@ object Utils extends Logging {
             updateExprs.map(e => flatbuffersSerializeExpression(builder, e, concatSchema)).toArray),
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
-            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray))
+            evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
+          e.isDistinct
+        )
     }
   }
 
