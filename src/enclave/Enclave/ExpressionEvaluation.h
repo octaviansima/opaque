@@ -1781,10 +1781,9 @@ public:
       row->field_values()->Get(0)->value())->value() == 0;
   }
 
-/** Returns the row evaluator corresponding to the primary row
- * Rows MUST have been tagged in Scala.
-*/
-
+  /** Returns the row evaluator corresponding to the primary row
+   * Rows MUST have been tagged in Scala.
+  */
   const tuix::Row *get_primary_row(
       const tuix::Row *row1, const tuix::Row *row2) {
     return is_primary(row1) ? row1 : row2;
@@ -1869,6 +1868,7 @@ public:
         std::unique_ptr<FlatbuffersExpressionEvaluator>(
           new FlatbuffersExpressionEvaluator(eval_expr)));
     }
+    is_distinct = expr->is_distinct();
   }
 
   std::vector<const tuix::Field *> initial_values(const tuix::Row *unused) {
@@ -1900,6 +1900,7 @@ private:
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> initial_value_evaluators;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> update_evaluators;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> evaluate_evaluators;
+  bool is_distinct;
 };
 
 class FlatbuffersAggOpEvaluator {
