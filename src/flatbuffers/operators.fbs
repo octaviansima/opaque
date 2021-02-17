@@ -38,6 +38,7 @@ table AggregateExpr {
     initial_values: [Expr];
     update_exprs: [Expr];
     evaluate_exprs: [Expr];
+    is_distinct: bool;
 }
 // Supported: Average, Count, First, Last, Max, Min, Sum
 
