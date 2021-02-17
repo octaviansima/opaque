@@ -7,6 +7,9 @@
 
 #include <iostream>
 
+/** C++ implementation of a non-oblivious sort merge join.
+ * Rows MUST be tagged primary or secondary for this to work.
+ */
 void non_oblivious_sort_merge_join(
   uint8_t *join_expr, size_t join_expr_length,
   uint8_t *input_rows, size_t input_rows_length,
@@ -99,6 +102,12 @@ void non_oblivious_sort_merge_join(
   w.output_buffer(output_rows, output_rows_length);
 }
 
+/** C++ implementation of a broadcast nested loop join.
+ * Which row is broadcasted and which row is not is handled in Scala.
+ * DOES NOT rely on rows to be tagged primary or secondary, and that
+ * assumption will break the implementation. In other words, 
+ * outer is always left and inner is always right.
+ */
 void broadcast_nested_loop_join(
   uint8_t *join_expr, size_t join_expr_length,
   uint8_t *outer_rows, size_t outer_rows_length,
@@ -125,7 +134,7 @@ void broadcast_nested_loop_join(
     switch(join_type) {
       case tuix::JoinType_LeftAnti:
         if (!o_i_match) {
-          w.append(join_expr_eval.get_primary_row(outer, inner));
+          w.append(outer);
         }
         break;
       default:

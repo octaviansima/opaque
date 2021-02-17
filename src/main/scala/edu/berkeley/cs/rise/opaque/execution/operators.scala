@@ -331,6 +331,9 @@ case class EncryptedBroadcastNestedLoopJoinExec(
   }
 
   override def executeBlocked(): RDD[Block] = {
+    /** No keys are passed to serialization because this physical operator is
+     * commonly used for non-equi joins.
+     */
     val joinExprSer = Utils.serializeJoinExpression(
         joinType, None, None, left.output, right.output, condition)
 

@@ -1774,13 +1774,17 @@ public:
   /**
    * Return true if the given row is from the primary table, indicated by its first field, which
    * must be an IntegerField.
+   * Rows MUST have been tagged in Scala.
    */
   bool is_primary(const tuix::Row *row) {
     return static_cast<const tuix::IntegerField *>(
       row->field_values()->Get(0)->value())->value() == 0;
   }
 
-/* Returns the row evaluator corresponding to the primary row */
+/** Returns the row evaluator corresponding to the primary row
+ * Rows MUST have been tagged in Scala.
+*/
+
   const tuix::Row *get_primary_row(
       const tuix::Row *row1, const tuix::Row *row2) {
     return is_primary(row1) ? row1 : row2;
