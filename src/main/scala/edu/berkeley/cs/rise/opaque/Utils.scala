@@ -1302,13 +1302,28 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          0
         )
 
       case c @ Count(children) =>
         val count = c.aggBufferAttributes(0)
         // COUNT(*) should count NULL values
         // COUNT(expr) should return the number or rows for which the supplied expressions are non-NULL
+
+        val valueSelector = e.isDistinct match {
+          case true =>
+            val ar = e.aggregateFunction.children(0).asInstanceOf[AttributeReference]
+            println(ar)
+            println(concatSchema)
+            val colNum = concatSchema.indexWhere(_.semanticEquals(ar))
+            tuix.Expr.createExpr(
+              builder,
+              tuix.ExprUnion.Col,
+              tuix.Col.createCol(builder, colNum))
+          case false => 
+            0
+        }
 
         val (updateExprs: Seq[Expression], evaluateExprs: Seq[Expression]) = e.mode match {
           case Partial => {
@@ -1327,7 +1342,7 @@ object Utils extends Logging {
             val countUpdateExpr = Add(count, Literal(1L))
             (Seq(countUpdateExpr), Seq(count))
           }
-          case _ => 
+          case _ =>
         }
 
         tuix.AggregateExpr.createAggregateExpr(
@@ -1342,7 +1357,8 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          valueSelector
         )
 
       case f @ First(child, false) =>
@@ -1382,7 +1398,8 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          0
         )
 
       case l @ Last(child, false) =>
@@ -1422,7 +1439,8 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          0
         )
 
       case m @ Max(child) =>
@@ -1457,7 +1475,8 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          0
         )
 
       case m @ Min(child) =>
@@ -1492,7 +1511,8 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          0
         )
 
       case s @ Sum(child) =>
@@ -1532,7 +1552,8 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          0
         )
 
       case vs @ ScalaUDAF(Seq(child), _: VectorSum, _, _) =>
@@ -1569,7 +1590,8 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct
+          e.isDistinct,
+          0
         )
     }
   }

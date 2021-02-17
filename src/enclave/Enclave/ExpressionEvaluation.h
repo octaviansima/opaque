@@ -1825,6 +1825,7 @@ public:
 
   std::vector<const tuix::Field *> update(const tuix::Row *concat) {
     std::vector<const tuix::Field *> result;
+    std::cout << to_string(concat) << std::endl;
     for (auto&& e : update_evaluators) {
       result.push_back(e->eval(concat));
     }
