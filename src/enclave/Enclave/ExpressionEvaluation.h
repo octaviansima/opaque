@@ -1813,6 +1813,8 @@ public:
           new FlatbuffersExpressionEvaluator(eval_expr)));
     }
     is_distinct = expr->is_distinct();
+    value_selector = std::unique_ptr<FlatbuffersExpressionEvaluator>(
+        new FlatbuffersExpressionEvaluator(expr->value_selector()));
   }
 
   std::vector<const tuix::Field *> initial_values(const tuix::Row *unused) {
@@ -1825,8 +1827,10 @@ public:
 
   std::vector<const tuix::Field *> update(const tuix::Row *concat) {
     std::vector<const tuix::Field *> result;
-    std::cout << to_string(concat) << std::endl;
     for (auto&& e : update_evaluators) {
+      if (is_distinct) {
+        std::cout << to_string(value_selector->eval(concat)) << std::endl;
+      }
       result.push_back(e->eval(concat));
     }
     return result;
@@ -1846,6 +1850,7 @@ private:
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> update_evaluators;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> evaluate_evaluators;
   bool is_distinct;
+  std::unique_ptr<FlatbuffersExpressionEvaluator> value_selector;
 };
 
 class FlatbuffersAggOpEvaluator {

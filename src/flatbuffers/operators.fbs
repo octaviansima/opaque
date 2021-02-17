@@ -38,7 +38,7 @@ table AggregateExpr {
     initial_values: [Expr];
     update_exprs: [Expr];
     evaluate_exprs: [Expr];
-    // Items below are used for COUNT(distinct ...)
+    // Items below are used for COUNT(distinct col_name ...)
     is_distinct: bool;
     value_selector: Expr;
 }

@@ -1302,7 +1302,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          false,
           0
         )
 
@@ -1310,19 +1310,18 @@ object Utils extends Logging {
         val count = c.aggBufferAttributes(0)
         // COUNT(*) should count NULL values
         // COUNT(expr) should return the number or rows for which the supplied expressions are non-NULL
+        // COUNT(distinct col_name ...) should return the number of rows that contain UNIQUE values of col_name
 
-        val valueSelector = e.isDistinct match {
-          case true =>
-            val ar = e.aggregateFunction.children(0).asInstanceOf[AttributeReference]
-            println(ar)
-            println(concatSchema)
-            val colNum = concatSchema.indexWhere(_.semanticEquals(ar))
-            tuix.Expr.createExpr(
-              builder,
-              tuix.ExprUnion.Col,
-              tuix.Col.createCol(builder, colNum))
-          case false => 
-            0
+        val ar = e.aggregateFunction.children(0)
+        val colNum = concatSchema.indexWhere(_.semanticEquals(ar))
+        val (isDistinct, valueSelector) = (e.isDistinct, colNum) match {
+          case (true, x) if x >= 0 => // If colNum < 0, then the given schema does not contain the attribute
+            (true, tuix.Expr.createExpr(
+                builder,
+                tuix.ExprUnion.Col,
+                tuix.Col.createCol(builder, colNum)))
+          case _ =>
+            (false, 0)
         }
 
         val (updateExprs: Seq[Expression], evaluateExprs: Seq[Expression]) = e.mode match {
@@ -1357,7 +1356,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          isDistinct,
           valueSelector
         )
 
@@ -1398,7 +1397,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          false,
           0
         )
 
@@ -1439,7 +1438,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          false,
           0
         )
 
@@ -1475,7 +1474,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          false,
           0
         )
 
@@ -1511,7 +1510,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          false,
           0
         )
 
@@ -1552,7 +1551,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          false,
           0
         )
 
@@ -1590,7 +1589,7 @@ object Utils extends Logging {
           tuix.AggregateExpr.createEvaluateExprsVector(
             builder,
             evaluateExprs.map(e => flatbuffersSerializeExpression(builder, e, aggSchema)).toArray),
-          e.isDistinct,
+          false,
           0
         )
     }
