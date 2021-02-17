@@ -1829,7 +1829,12 @@ public:
     std::vector<const tuix::Field *> result;
     for (auto&& e : update_evaluators) {
       if (is_distinct) {
-        std::cout << to_string(value_selector->eval(concat)) << std::endl;
+        std::string value = to_string(value_selector->eval(concat));
+        if (observed_values.count(value)) {
+          std::cout << value << std::endl;
+          // continue;
+        }
+        observed_values.insert(value);
       }
       result.push_back(e->eval(concat));
     }
@@ -1844,6 +1849,7 @@ public:
     return result;
   }
 
+  std::set<std::string> observed_values;
 private:
   flatbuffers::FlatBufferBuilder builder;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> initial_value_evaluators;
@@ -1889,6 +1895,7 @@ public:
     // Write initial values to a
     std::vector<flatbuffers::Offset<tuix::Field>> init_fields;
     for (auto&& e : aggregate_evaluators) {
+      e->observed_values.clear();
       for (auto f : e->initial_values(nullptr)) {
         init_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
       }
