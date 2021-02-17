@@ -252,65 +252,7 @@ public:
     return flatbuffers::GetTemporaryPointer<tuix::Field>(builder, result_offset);
   }
 
-  /**
-   * Evaluate the stored expression on two pre-computed fields. Return a Field containing the result.
-   * Note: this is different from eval(const tuix::Row *row) because it assumes the builder has been properly
-   * managed by the calling function.
-   */
-  const tuix::Field *eval(const tuix::Field *field1, const tuix::Field *field2) {
-    builder.Clear();
-    flatbuffers::Offset<tuix::Field> result_offset = eval_helper(field1, field2, expr);
-    return flatbuffers::GetTemporaryPointer<tuix::Field>(builder, result_offset);
-  }
-
 private:
-  flatbuffers::Offset<tuix::Field> eval_helper(const tuix::Field *field1,
-      const tuix::Field *field2,
-      const tuix::Expr *expr) {
-    switch (expr->expr_type()) {
-      case tuix::ExprUnion_LessThan:
-      {
-        return eval_binary_comparison<tuix::LessThan, std::less>(
-          builder,
-          field1,
-          field2);
-      }
-
-      case tuix::ExprUnion_LessThanOrEqual:
-      {
-        return eval_binary_comparison<tuix::LessThanOrEqual, std::less_equal>(
-          builder,
-          field1,
-          field2);
-      }
-
-      case tuix::ExprUnion_GreaterThan:
-      {
-        return eval_binary_comparison<tuix::GreaterThan, std::greater>(
-          builder,
-          field1,
-          field2);
-      }
-
-      case tuix::ExprUnion_GreaterThanOrEqual:
-      {
-        return eval_binary_comparison<tuix::GreaterThanOrEqual, std::greater_equal>(
-          builder,
-          field1,
-          field2);
-      }
-
-      case tuix::ExprUnion_EqualTo:
-      {
-        return eval_binary_comparison<tuix::EqualTo, std::equal_to>(
-          builder,
-          field1,
-          field2);
-      }
-      default:
-        return NULL;
-    }
-  }
   /**
    * Evaluate the given expression on the given row. Return the offset (within builder) of the Field
    * containing the result. This offset is only valid until the next call to eval.
