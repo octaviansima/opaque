@@ -121,26 +121,14 @@ object OpaqueOperators extends Strategy {
           getSmallerSide(left, right) else
           getBroadcastSideBNLJ(joinType)
 
-      val leftKeys = Seq(condition.get.children(0))
-      val rightKeys = Seq(condition.get.children(1))
-      val (leftProjSchema, _, _) = tagForJoin(leftKeys, left.output, true)
-      val (rightProjSchema, _, _) = tagForJoin(rightKeys, right.output, false)
-      val leftProj = EncryptedProjectExec(leftProjSchema, planLater(left))
-      val rightProj = EncryptedProjectExec(rightProjSchema, planLater(right))
-
       val joined = EncryptedBroadcastNestedLoopJoinExec(
-        leftProj,
-        rightProj,
+        planLater(left),
+        planLater(right),
         desiredBuildSide,
         joinType,
         condition)
 
-      val tagsDropped = joinType match {
-        case LeftAnti => EncryptedProjectExec(left.output, joined)
-        case _ => throw new OpaqueException("Join type not supported: " + joinType)
-      }
-
-      tagsDropped :: Nil
+      joined :: Nil
 
     case a @ PhysicalAggregation(groupingExpressions, aggExpressions, resultExpressions, child)
         if (isEncrypted(child) && aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression])) =>
