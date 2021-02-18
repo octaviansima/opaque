@@ -27,6 +27,7 @@ import org.apache.spark.sql.catalyst.expressions.IntegerLiteral
 import org.apache.spark.sql.catalyst.expressions.IsNotNull
 import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.catalyst.expressions.NamedExpression
+import org.apache.spark.sql.catalyst.expressions.EquivalentExpressions
 import org.apache.spark.sql.catalyst.expressions.SortOrder
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.planning.ExtractEquiJoinKeys
@@ -44,6 +45,7 @@ import org.apache.spark.sql.execution.SparkPlan
 
 import edu.berkeley.cs.rise.opaque.execution._
 import edu.berkeley.cs.rise.opaque.logical._
+import spire.syntax.group
 
 object OpaqueOperators extends Strategy {
 
@@ -159,11 +161,11 @@ object OpaqueOperators extends Strategy {
       } else {
         // Grouping aggregation
         EncryptedProjectExec(resultExpressions,
-          EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
-            EncryptedSortExec(groupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
-              EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial,
-                EncryptedRangePartitionExec(aggregatePartitionOrder,
-                  EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), false, planLater(child))))))) :: Nil
+        EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
+          EncryptedSortExec(groupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
+            EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial,
+              EncryptedRangePartitionExec(aggregatePartitionOrder,
+                EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child))))))) :: Nil
       }
 
     case p @ Union(Seq(left, right)) if isEncrypted(p) =>
