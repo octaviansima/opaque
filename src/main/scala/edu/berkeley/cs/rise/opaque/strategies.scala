@@ -147,6 +147,11 @@ object OpaqueOperators extends Strategy {
           Seq()
       }
 
+      println(groupingExpressions)
+      println(aggregateExpressions)
+      println(resultExpressions)
+      println(aggregatePartitionOrder)
+
       if (groupingExpressions.size == 0) {
         // Global aggregation
         val partialAggregate = EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial, planLater(child))
@@ -172,14 +177,6 @@ object OpaqueOperators extends Strategy {
 
     case a @ Aggregate(groupingExpressions, resultExpressions, child) if (isEncrypted(child)) =>
 
-      val equivalentAggregateExpressions = new EquivalentExpressions
-      val aggregateExpressions = resultExpressions.flatMap { expr =>
-        expr.collect {
-          // addExpr() always returns false for non-deterministic expressions and do not add them.
-          case agg: AggregateExpression
-            if !equivalentAggregateExpressions.addExpr(agg) => agg
-        }
-      }
       val namedGroupingExpressions = groupingExpressions.map {
         case ne: NamedExpression => ne -> ne
         // If the expression is not a NamedExpressions, we add an alias.
@@ -189,6 +186,15 @@ object OpaqueOperators extends Strategy {
           val withAlias = Alias(other, other.toString)()
           other -> withAlias
       }.map(_._2)
+
+      val equivalentAggregateExpressions = new EquivalentExpressions
+      val aggregateExpressions = resultExpressions.flatMap { expr =>
+        expr.collect {
+          // addExpr() always returns false for non-deterministic expressions and do not add them.
+          case agg: AggregateExpression
+            if !equivalentAggregateExpressions.addExpr(agg) => agg
+        }
+      }
 
       val (functionsWithDistinct, functionsWithoutDistinct) =
           aggregateExpressions.partition(_.isDistinct)
@@ -204,7 +210,28 @@ object OpaqueOperators extends Strategy {
       println(aggregateExpressions)
       println(resultExpressions)
       println(aggregatePartitionOrder)
-      Nil
+
+      if (namedGroupingExpressions.size == 0) {
+        // Global aggregation
+        val partialAggregate = EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Partial, planLater(child))
+        val partialOutput = partialAggregate.output
+        val (projSchema, tag) = tagForGlobalAggregate(partialOutput)
+
+        EncryptedProjectExec(resultExpressions, 
+          EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Final, 
+            EncryptedRangePartitionExec(aggregatePartitionOrder,
+              EncryptedProjectExec(partialOutput,
+                EncryptedSortExec(Seq(SortOrder(tag, Ascending)), true,
+                  EncryptedProjectExec(projSchema, partialAggregate)))))) :: Nil
+      } else {
+        // Grouping aggregation
+        EncryptedProjectExec(resultExpressions,
+        EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Final,
+          EncryptedSortExec(namedGroupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
+            EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Partial,
+              EncryptedRangePartitionExec(aggregatePartitionOrder,
+                EncryptedSortExec(namedGroupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child))))))) :: Nil
+      }
 
 
     case p @ Union(Seq(left, right)) if isEncrypted(p) =>
