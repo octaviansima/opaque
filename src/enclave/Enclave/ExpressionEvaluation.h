@@ -1941,23 +1941,18 @@ public:
     std::vector<flatbuffers::Offset<tuix::Field>> output_fields;
     for (auto&& e : aggregate_evaluators) {
       for (auto f : e->update(concat_ptr)) {
-        if (f == nullptr) {
+        if (f == nullptr) { // Only triggered on COUNT(distinct col_name ...)
           output_fields.clear();
-          int i = 0;
-          for (auto f : *concat_ptr->field_values()) {
-            if (i >= a_length) {
-              break;
-            }
+          for (int i = 0; i < a_length; i++) {
+            auto f = concat_ptr->field_values()->Get(i);
             output_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
-            i++;
           }
-          a = flatbuffers::GetTemporaryPointer<tuix::Row>(
-            builder2, tuix::CreateRowDirect(builder2, &output_fields));
-          return;
+          goto save_a;
         } 
         output_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
       }
     }
+save_a:
     a = flatbuffers::GetTemporaryPointer<tuix::Row>(
       builder2, tuix::CreateRowDirect(builder2, &output_fields));
   }
