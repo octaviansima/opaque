@@ -1832,7 +1832,8 @@ public:
     for (auto&& e : update_evaluators) {
       if (is_distinct) {
         std::string value = to_string(value_selector->eval(concat));
-        if (observed_values.count(value)) {
+        /* Check to see if this distinct value has already been counted */
+        if (observed_values.count(value)) { 
           std::vector<const tuix::Field *> vect(1, nullptr);
           return vect;
         }
