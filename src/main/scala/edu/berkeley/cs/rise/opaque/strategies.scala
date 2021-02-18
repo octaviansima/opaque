@@ -166,18 +166,16 @@ object OpaqueOperators extends Strategy {
 
             EncryptedProjectExec(resultExpressions, 
               EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final, 
-                EncryptedRangePartitionExec(aggregatePartitionOrder,
                   EncryptedProjectExec(partialOutput,
                     EncryptedSortExec(Seq(SortOrder(tag, Ascending)), true,
-                      EncryptedProjectExec(projSchema, partialAggregate)))))) :: Nil
+                      EncryptedProjectExec(projSchema, partialAggregate))))) :: Nil
           } else {
             // Grouping aggregation
             EncryptedProjectExec(resultExpressions,
             EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
               EncryptedSortExec(groupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
                 EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial,
-                  EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), false,
-                    EncryptedRangePartitionExec(aggregatePartitionOrder, planLater(child))))))) :: Nil
+                  EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child)))))) :: Nil
           }
       }
 
