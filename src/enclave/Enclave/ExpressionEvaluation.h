@@ -1831,8 +1831,8 @@ public:
       if (is_distinct) {
         std::string value = to_string(value_selector->eval(concat));
         if (observed_values.count(value)) {
-          std::cout << value << std::endl;
-          // continue;
+          std::vector<const tuix::Field *> vect(1, nullptr);
+          return vect;
         }
         observed_values.insert(value);
       }
@@ -1917,23 +1917,42 @@ public:
   void aggregate(const tuix::Row *row) {
     builder.Clear();
     flatbuffers::Offset<tuix::Row> concat;
+    int a_length = a->field_values()->size();
 
     std::vector<flatbuffers::Offset<tuix::Field>> concat_fields;
     // concat row to a
     for (auto field : *a->field_values()) {
       concat_fields.push_back(flatbuffers_copy<tuix::Field>(field, builder));
     }
+    std::cout << "about to start aggregate()" << std::endl;
     for (auto field : *row->field_values()) {
       concat_fields.push_back(flatbuffers_copy<tuix::Field>(field, builder));
     }
     concat = tuix::CreateRowDirect(builder, &concat_fields);
     const tuix::Row *concat_ptr = flatbuffers::GetTemporaryPointer<tuix::Row>(builder, concat);
 
+    std::cout << to_string(a) << std::endl;
     // run update_exprs
     builder2.Clear();
     std::vector<flatbuffers::Offset<tuix::Field>> output_fields;
     for (auto&& e : aggregate_evaluators) {
       for (auto f : e->update(concat_ptr)) {
+        if (f == nullptr) {
+          output_fields.clear();
+          int i = 0;
+          for (auto f : *concat_ptr->field_values()) {
+            if (i >= a_length) {
+              break;
+            }
+            output_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
+            i++;
+          }
+          std::cout << "about to make temp pointer" << std::endl;
+          a = flatbuffers::GetTemporaryPointer<tuix::Row>(
+            builder2, tuix::CreateRowDirect(builder2, &output_fields));
+          std::cout << to_string(a) << std::endl;
+          return;
+        } 
         output_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
       }
     }

@@ -23,6 +23,7 @@ void non_oblivious_aggregate(
     cur.set(r.next());
     
     if (prev.get() != nullptr && !agg_op_eval.is_same_group(prev.get(), cur.get())) {
+      std::cout << "about to get into evaluate()" << std::endl;
       w.append(agg_op_eval.evaluate());
       agg_op_eval.reset_group();
     }
@@ -30,6 +31,7 @@ void non_oblivious_aggregate(
     count += 1;
   }
 
+  std::cout << "got out of while loop" << std::endl;
   // Skip outputting the final row if:
   // 1. The number of input rows is 0 AND it's a grouping aggregation, OR
   // 2. It's a global aggregation, the mode is final
