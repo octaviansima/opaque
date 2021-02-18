@@ -134,8 +134,14 @@ object OpaqueOperators extends Strategy {
         if (isEncrypted(child) && aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression])) =>
 
       val aggregateExpressions = aggExpressions.map(expr => expr.asInstanceOf[AggregateExpression])
-      val aggregatePartitionOrder = aggregateExpressions(0).aggregateFunction.children.map(k => SortOrder(k, Ascending))
-      println(aggregatePartitionOrder)
+      val (functionsWithDistinct, functionsWithoutDistinct) =
+          aggregateExpressions.partition(_.isDistinct)
+      val aggregatePartitionOrder = functionsWithDistinct.size match {
+        case 1 =>
+          functionsWithDistinct(0).aggregateFunction.children.map(k => SortOrder(k, Ascending))
+        case _ =>
+          Seq()
+      }
 
       if (groupingExpressions.size == 0) {
         // Global aggregation
