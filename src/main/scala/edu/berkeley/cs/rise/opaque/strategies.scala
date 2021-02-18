@@ -134,6 +134,8 @@ object OpaqueOperators extends Strategy {
         if (isEncrypted(child) && aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression])) =>
 
       val aggregateExpressions = aggExpressions.map(expr => expr.asInstanceOf[AggregateExpression])
+      val aggregatePartitionOrder = aggregateExpressions(0).aggregateFunction.children.map(k => SortOrder(k, Ascending))
+      println(aggregatePartitionOrder)
 
       if (groupingExpressions.size == 0) {
         // Global aggregation
@@ -150,9 +152,10 @@ object OpaqueOperators extends Strategy {
         // Grouping aggregation
         EncryptedProjectExec(resultExpressions,
           EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
+          EncryptedRangePartitionExec(aggregatePartitionOrder,
             EncryptedSortExec(groupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
               EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial,
-                EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), false, planLater(child)))))) :: Nil
+                EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), false, planLater(child))))))) :: Nil
       }
 
     case p @ Union(Seq(left, right)) if isEncrypted(p) =>
