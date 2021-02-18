@@ -145,17 +145,18 @@ object OpaqueOperators extends Strategy {
 
         EncryptedProjectExec(resultExpressions, 
           EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final, 
-            EncryptedProjectExec(partialOutput, 
-              EncryptedSortExec(Seq(SortOrder(tag, Ascending)), true, 
-                EncryptedProjectExec(projSchema, partialAggregate))))) :: Nil
+            EncryptedRangePartitionExec(aggregatePartitionOrder,
+              EncryptedProjectExec(partialOutput,
+                EncryptedSortExec(Seq(SortOrder(tag, Ascending)), true,
+                  EncryptedProjectExec(projSchema, partialAggregate)))))) :: Nil
       } else {
         // Grouping aggregation
         EncryptedProjectExec(resultExpressions,
           EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
-          EncryptedRangePartitionExec(aggregatePartitionOrder,
             EncryptedSortExec(groupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
               EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial,
-                EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), false, planLater(child))))))) :: Nil
+                EncryptedRangePartitionExec(aggregatePartitionOrder,
+                  EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), false, planLater(child))))))) :: Nil
       }
 
     case p @ Union(Seq(left, right)) if isEncrypted(p) =>
