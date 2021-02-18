@@ -27,7 +27,6 @@ import org.apache.spark.sql.catalyst.expressions.IntegerLiteral
 import org.apache.spark.sql.catalyst.expressions.IsNotNull
 import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.catalyst.expressions.NamedExpression
-import org.apache.spark.sql.catalyst.expressions.EquivalentExpressions
 import org.apache.spark.sql.catalyst.expressions.SortOrder
 import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.planning.ExtractEquiJoinKeys
@@ -45,7 +44,6 @@ import org.apache.spark.sql.execution.SparkPlan
 
 import edu.berkeley.cs.rise.opaque.execution._
 import edu.berkeley.cs.rise.opaque.logical._
-import spire.syntax.group
 
 object OpaqueOperators extends Strategy {
 
@@ -132,7 +130,6 @@ object OpaqueOperators extends Strategy {
 
       joined :: Nil
 
-    /*
     case a @ PhysicalAggregation(groupingExpressions, aggExpressions, resultExpressions, child)
         if (isEncrypted(child) && aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression])) =>
 
@@ -173,66 +170,6 @@ object OpaqueOperators extends Strategy {
               EncryptedRangePartitionExec(aggregatePartitionOrder,
                 EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child))))))) :: Nil
       }
-    */
-
-    case a @ Aggregate(groupingExpressions, resultExpressions, child) if (isEncrypted(child)) =>
-
-      val namedGroupingExpressions = groupingExpressions.map {
-        case ne: NamedExpression => ne -> ne
-        // If the expression is not a NamedExpressions, we add an alias.
-        // So, when we generate the result of the operator, the Aggregate Operator
-        // can directly get the Seq of attributes representing the grouping expressions.
-        case other =>
-          val withAlias = Alias(other, other.toString)()
-          other -> withAlias
-      }.map(_._2)
-
-      val equivalentAggregateExpressions = new EquivalentExpressions
-      val aggregateExpressions = resultExpressions.flatMap { expr =>
-        expr.collect {
-          // addExpr() always returns false for non-deterministic expressions and do not add them.
-          case agg: AggregateExpression
-            if !equivalentAggregateExpressions.addExpr(agg) => agg
-        }
-      }
-
-      val (functionsWithDistinct, functionsWithoutDistinct) =
-          aggregateExpressions.partition(_.isDistinct)
-      val aggregatePartitionOrder = functionsWithDistinct.size match {
-        case size if size > 0 =>
-          // All of these functions are guaranteed to have the same column expression so we check the first.
-          functionsWithDistinct(0).aggregateFunction.children.map(k => SortOrder(k, Ascending))
-        case _ =>
-          Seq()
-      }
-
-      println(namedGroupingExpressions)
-      println(aggregateExpressions)
-      println(resultExpressions)
-      println(aggregatePartitionOrder)
-
-      if (namedGroupingExpressions.size == 0) {
-        // Global aggregation
-        val partialAggregate = EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Partial, planLater(child))
-        val partialOutput = partialAggregate.output
-        val (projSchema, tag) = tagForGlobalAggregate(partialOutput)
-
-        EncryptedProjectExec(resultExpressions, 
-          EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Final, 
-            EncryptedRangePartitionExec(aggregatePartitionOrder,
-              EncryptedProjectExec(partialOutput,
-                EncryptedSortExec(Seq(SortOrder(tag, Ascending)), true,
-                  EncryptedProjectExec(projSchema, partialAggregate)))))) :: Nil
-      } else {
-        // Grouping aggregation
-        EncryptedProjectExec(resultExpressions,
-        EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Final,
-          EncryptedSortExec(namedGroupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
-            EncryptedAggregateExec(namedGroupingExpressions, aggregateExpressions, Partial,
-              EncryptedRangePartitionExec(aggregatePartitionOrder,
-                EncryptedSortExec(namedGroupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child))))))) :: Nil
-      }
-
 
     case p @ Union(Seq(left, right)) if isEncrypted(p) =>
       EncryptedUnionExec(planLater(left), planLater(right)) :: Nil
