@@ -170,6 +170,23 @@ object OpaqueOperators extends Strategy {
                     EncryptedSortExec(Seq(SortOrder(tag, Ascending)), true,
                       EncryptedProjectExec(projSchema, partialAggregate))))) :: Nil
           } else {
+            val distinctExpressions = functionsWithDistinct.head.aggregateFunction.children
+            val namedDistinctExpressions = functionsWithDistinct.head.aggregateFunction.children.map(_.asInstanceOf[NamedExpression])
+            val distinctAttributes = namedDistinctExpressions.map(_.toAttribute)
+            val groupingAttributes = groupingExpressions.map(_.toAttribute)
+
+            // 1. Create an Aggregate Operator for partial aggregations.
+            val partialAggregate = {
+              val aggregateExpressions = functionsWithoutDistinct.map(_.copy(mode = Partial))
+              val aggregateAttributes = aggregateExpressions.map(_.resultAttribute)
+
+              EncryptedProjectExec(groupingAttributes ++ distinctAttributes ++ 
+                  aggregateExpressions.flatMap(_.aggregateFunction.inputAggBufferAttributes),
+                EncryptedAggregateExec(groupingExpressions ++ namedDistinctExpressions, aggregateExpressions, Partial, planLater(child)))
+            }
+
+            println(partialAggregate.output)
+
             // Grouping aggregation
             EncryptedProjectExec(resultExpressions,
             EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
