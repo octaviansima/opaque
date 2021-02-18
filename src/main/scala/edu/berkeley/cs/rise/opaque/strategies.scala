@@ -178,7 +178,6 @@ object OpaqueOperators extends Strategy {
             // 1. Create an Aggregate Operator for partial aggregations.
             val partialAggregate = {
               val aggregateExpressions = functionsWithoutDistinct.map(_.copy(mode = Partial))
-              val aggregateAttributes = aggregateExpressions.map(_.resultAttribute)
 
               EncryptedProjectExec(groupingAttributes ++ distinctAttributes ++ 
                   aggregateExpressions.flatMap(_.aggregateFunction.inputAggBufferAttributes),
@@ -186,6 +185,17 @@ object OpaqueOperators extends Strategy {
             }
 
             println(partialAggregate.output)
+
+            // 2. Create an Aggregate Operator for partial merge aggregations.
+            val partialMergeAggregate = {
+              val aggregateExpressions = functionsWithoutDistinct.map(_.copy(mode = PartialMerge))
+
+              EncryptedProjectExec(groupingAttributes ++ distinctAttributes ++ 
+                  aggregateExpressions.flatMap(_.aggregateFunction.inputAggBufferAttributes),
+                EncryptedAggregateExec(groupingExpressions ++ distinctAttributes, aggregateExpressions, PartialMerge, partialAggregate))
+            }
+
+            println(partialMergeAggregate.output)
 
             // Grouping aggregation
             EncryptedProjectExec(resultExpressions,
