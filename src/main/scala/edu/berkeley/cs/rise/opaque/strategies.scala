@@ -144,9 +144,6 @@ object OpaqueOperators extends Strategy {
           Seq()
       }
 
-      println(groupingExpressions)
-      println(aggregateExpressions)
-      println(resultExpressions)
       println(aggregatePartitionOrder)
 
       if (groupingExpressions.size == 0) {
@@ -167,8 +164,8 @@ object OpaqueOperators extends Strategy {
         EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
           EncryptedSortExec(groupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
             EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial,
-              EncryptedRangePartitionExec(aggregatePartitionOrder,
-                EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child))))))) :: Nil
+              EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), false,
+                EncryptedRangePartitionExec(aggregatePartitionOrder, planLater(child))))))) :: Nil
       }
 
     case p @ Union(Seq(left, right)) if isEncrypted(p) =>
