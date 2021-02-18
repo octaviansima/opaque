@@ -132,6 +132,7 @@ object OpaqueOperators extends Strategy {
 
       joined :: Nil
 
+    /*
     case a @ PhysicalAggregation(groupingExpressions, aggExpressions, resultExpressions, child)
         if (isEncrypted(child) && aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression])) =>
 
@@ -167,6 +168,44 @@ object OpaqueOperators extends Strategy {
               EncryptedRangePartitionExec(aggregatePartitionOrder,
                 EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child))))))) :: Nil
       }
+    */
+
+    case a @ Aggregate(groupingExpressions, resultExpressions, child) if (isEncrypted(child)) =>
+
+      val equivalentAggregateExpressions = new EquivalentExpressions
+      val aggregateExpressions = resultExpressions.flatMap { expr =>
+        expr.collect {
+          // addExpr() always returns false for non-deterministic expressions and do not add them.
+          case agg: AggregateExpression
+            if !equivalentAggregateExpressions.addExpr(agg) => agg
+        }
+      }
+      val namedGroupingExpressions = groupingExpressions.map {
+        case ne: NamedExpression => ne -> ne
+        // If the expression is not a NamedExpressions, we add an alias.
+        // So, when we generate the result of the operator, the Aggregate Operator
+        // can directly get the Seq of attributes representing the grouping expressions.
+        case other =>
+          val withAlias = Alias(other, other.toString)()
+          other -> withAlias
+      }.map(_._2)
+
+      val (functionsWithDistinct, functionsWithoutDistinct) =
+          aggregateExpressions.partition(_.isDistinct)
+      val aggregatePartitionOrder = functionsWithDistinct.size match {
+        case size if size > 0 =>
+          // All of these functions are guaranteed to have the same column expression so we check the first.
+          functionsWithDistinct(0).aggregateFunction.children.map(k => SortOrder(k, Ascending))
+        case _ =>
+          Seq()
+      }
+
+      println(namedGroupingExpressions)
+      println(aggregateExpressions)
+      println(resultExpressions)
+      println(aggregatePartitionOrder)
+      Nil
+
 
     case p @ Union(Seq(left, right)) if isEncrypted(p) =>
       EncryptedUnionExec(planLater(left), planLater(right)) :: Nil
