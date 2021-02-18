@@ -1849,7 +1849,10 @@ public:
     return result;
   }
 
-  std::set<std::string> observed_values;
+  void clear_observed_values() {
+    observed_values.clear();
+  }
+
 private:
   flatbuffers::FlatBufferBuilder builder;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> initial_value_evaluators;
@@ -1857,6 +1860,7 @@ private:
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> evaluate_evaluators;
   bool is_distinct;
   std::unique_ptr<FlatbuffersExpressionEvaluator> value_selector;
+  std::set<std::string> observed_values;
 };
 
 class FlatbuffersAggOpEvaluator {
@@ -1895,7 +1899,7 @@ public:
     // Write initial values to a
     std::vector<flatbuffers::Offset<tuix::Field>> init_fields;
     for (auto&& e : aggregate_evaluators) {
-      e->observed_values.clear();
+      e->clear_observed_values();
       for (auto f : e->initial_values(nullptr)) {
         init_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
       }
@@ -1924,14 +1928,12 @@ public:
     for (auto field : *a->field_values()) {
       concat_fields.push_back(flatbuffers_copy<tuix::Field>(field, builder));
     }
-    std::cout << "about to start aggregate()" << std::endl;
     for (auto field : *row->field_values()) {
       concat_fields.push_back(flatbuffers_copy<tuix::Field>(field, builder));
     }
     concat = tuix::CreateRowDirect(builder, &concat_fields);
     const tuix::Row *concat_ptr = flatbuffers::GetTemporaryPointer<tuix::Row>(builder, concat);
 
-    std::cout << to_string(a) << std::endl;
     // run update_exprs
     builder2.Clear();
     std::vector<flatbuffers::Offset<tuix::Field>> output_fields;
@@ -1947,10 +1949,8 @@ public:
             output_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
             i++;
           }
-          std::cout << "about to make temp pointer" << std::endl;
           a = flatbuffers::GetTemporaryPointer<tuix::Row>(
             builder2, tuix::CreateRowDirect(builder2, &output_fields));
-          std::cout << to_string(a) << std::endl;
           return;
         } 
         output_fields.push_back(flatbuffers_copy<tuix::Field>(f, builder2));
