@@ -1942,7 +1942,7 @@ public:
     std::vector<flatbuffers::Offset<tuix::Field>> output_fields;
     for (auto&& e : aggregate_evaluators) {
       for (auto f : e->update(concat_ptr)) {
-        if (f == nullptr) { // Only triggered on COUNT(distinct col_name ...)
+        if (f == nullptr) { // Only triggered on COUNT(distinct expr ...)
           output_fields.clear();
           for (int i = 0; i < a_length; i++) {
             auto f = concat_ptr->field_values()->Get(i);

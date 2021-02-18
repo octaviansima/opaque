@@ -1310,7 +1310,7 @@ object Utils extends Logging {
         val count = c.aggBufferAttributes(0)
         // COUNT(*) should count NULL values
         // COUNT(expr) should return the number or rows for which the supplied expressions are non-NULL
-        // COUNT(distinct col_name ...) should return the number of rows that contain UNIQUE values of col_name
+        // COUNT(distinct expr ...) should return the number of rows that contain UNIQUE values of expr
 
         val ar = e.aggregateFunction.children(0)
         val colNum = concatSchema.indexWhere(_.semanticEquals(ar))
