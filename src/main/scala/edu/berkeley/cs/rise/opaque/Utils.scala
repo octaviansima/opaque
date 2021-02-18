@@ -1316,10 +1316,7 @@ object Utils extends Logging {
         val colNum = concatSchema.indexWhere(_.semanticEquals(ar))
         val (isDistinct, valueSelector) = (e.isDistinct, colNum) match {
           case (true, x) if x >= 0 => // If colNum < 0, then the given schema does not contain the attribute
-            (true, tuix.Expr.createExpr(
-                builder,
-                tuix.ExprUnion.Col,
-                tuix.Col.createCol(builder, colNum)))
+            (true, flatbuffersSerializeExpression(builder, ar, concatSchema))
           case _ =>
             (false, 0)
         }
