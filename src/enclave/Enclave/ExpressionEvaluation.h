@@ -1685,12 +1685,15 @@ public:
     const tuix::JoinExpr* join_expr = flatbuffers::GetRoot<tuix::JoinExpr>(buf);
 
     join_type = join_expr->join_type();
-    condition = join_expr->condition();
+    if (join_expr->condition() != NULL) {
+      condition_eval = std::unique_ptr<FlatbuffersExpressionEvaluator>(
+          new FlatbuffersExpressionEvaluator(join_expr->condition()));
+    }
     is_equi_join = false;
 
     if (join_expr->left_keys() != NULL && join_expr->right_keys() != NULL) {
       is_equi_join = true;
-      if (condition != NULL) {
+      if (join_expr->condition() != NULL) {
         throw std::runtime_error("Equi join cannot have condition");
       }
       if (join_expr->left_keys()->size() != join_expr->right_keys()->size()) {
@@ -1773,8 +1776,7 @@ public:
       flatbuffers::Offset<tuix::Row> concat = tuix::CreateRowDirect(builder, &concat_fields);
       const tuix::Row *concat_ptr = flatbuffers::GetTemporaryPointer<tuix::Row>(builder, concat);
 
-      FlatbuffersExpressionEvaluator condition_eval(condition);
-      const tuix::Field *condition_result = condition_eval.eval(concat_ptr);
+      const tuix::Field *condition_result = condition_eval->eval(concat_ptr);
 
       return static_cast<const tuix::BooleanField *>(condition_result->value())->value();
     }
@@ -1791,7 +1793,7 @@ private:
   bool is_equi_join;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> left_key_evaluators;
   std::vector<std::unique_ptr<FlatbuffersExpressionEvaluator>> right_key_evaluators;
-  const edu::berkeley::cs::rise::opaque::tuix::Expr* condition;
+  std::unique_ptr<FlatbuffersExpressionEvaluator> condition_eval;
 };
 
 class AggregateExpressionEvaluator {
