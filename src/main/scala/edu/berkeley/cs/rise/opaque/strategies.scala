@@ -137,7 +137,8 @@ object OpaqueOperators extends Strategy {
       val (functionsWithDistinct, functionsWithoutDistinct) =
           aggregateExpressions.partition(_.isDistinct)
       val aggregatePartitionOrder = functionsWithDistinct.size match {
-        case 1 =>
+        case size if size > 0 =>
+          // All of these functions are guaranteed to have the same column expression so we check the first.
           functionsWithDistinct(0).aggregateFunction.children.map(k => SortOrder(k, Ascending))
         case _ =>
           Seq()
