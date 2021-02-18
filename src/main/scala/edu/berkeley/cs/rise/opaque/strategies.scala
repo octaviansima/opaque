@@ -184,8 +184,6 @@ object OpaqueOperators extends Strategy {
                 EncryptedAggregateExec(groupingExpressions ++ namedDistinctExpressions, aggregateExpressions, Partial, planLater(child)))
             }
 
-            println(partialAggregate.output)
-
             // 2. Create an Aggregate Operator for partial merge aggregations.
             val partialMergeAggregate = {
               val aggregateExpressions = functionsWithoutDistinct.map(_.copy(mode = PartialMerge))
@@ -195,7 +193,43 @@ object OpaqueOperators extends Strategy {
                 EncryptedAggregateExec(groupingExpressions ++ distinctAttributes, aggregateExpressions, PartialMerge, partialAggregate))
             }
 
-            println(partialMergeAggregate.output)
+            // 3. Create an Aggregate operator for partial aggregation (for distinct)
+            val distinctColumnAttributeLookup = distinctExpressions.zip(distinctAttributes).toMap
+            val rewrittenDistinctFunctions = functionsWithDistinct.map {
+              // Children of an AggregateFunction with DISTINCT keyword has already
+              // been evaluated. At here, we need to replace original children
+              // to AttributeReferences.
+              case agg @ AggregateExpression(aggregateFunction, mode, true, _, _) =>
+                aggregateFunction.transformDown(distinctColumnAttributeLookup)
+                  .asInstanceOf[AggregateFunction]
+              case agg =>
+                throw new IllegalArgumentException(
+                  "Non-distinct aggregate is found in functionsWithDistinct " +
+                  s"at planAggregateWithOneDistinct: $agg")
+            }
+            val partialDistinctAggregate = {
+              val mergeAggregateExpressions = functionsWithoutDistinct.map(_.copy(mode = PartialMerge))
+              val (distinctAggregateExpressions, distinctAggregateAttributes) =
+                rewrittenDistinctFunctions.zipWithIndex.map { case (func, i) =>
+                  // We rewrite the aggregate function to a non-distinct aggregation because
+                  // its input will have distinct arguments.
+                  // We just keep the isDistinct setting to true, so when users look at the query plan,
+                  // they still can see distinct aggregations.
+                  val expr = AggregateExpression(func, Partial, isDistinct = true)
+                  // Use original AggregationFunction to lookup attributes, which is used to build
+                  // aggregateFunctionToAttribute
+                  val attr = functionsWithDistinct(i).resultAttribute
+                  (expr, attr)
+              }.unzip
+
+              val partialAggregateResult = groupingAttributes ++
+                mergeAggregateExpressions.flatMap(_.aggregateFunction.inputAggBufferAttributes) ++
+                distinctAggregateExpressions.flatMap(_.aggregateFunction.inputAggBufferAttributes)
+
+              EncryptedProjectExec(partialAggregateResult,
+                EncryptedAggregateExec(groupingAttributes, mergeAggregateExpressions ++ distinctAggregateExpressions, PartialMerge, partialMergeAggregate))
+            }
+            println(partialDistinctAggregate.output)
 
             // Grouping aggregation
             EncryptedProjectExec(resultExpressions,
