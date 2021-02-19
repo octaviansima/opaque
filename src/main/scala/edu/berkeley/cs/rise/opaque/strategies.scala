@@ -173,9 +173,8 @@ object OpaqueOperators extends Strategy {
             // Grouping aggregation
             EncryptedProjectExec(resultExpressions,
             EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Final,
-              EncryptedSortExec(groupingExpressions.map(_.toAttribute).map(e => SortOrder(e, Ascending)), true,
                 EncryptedAggregateExec(groupingExpressions, aggregateExpressions, Partial,
-                  EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child)))))) :: Nil
+                  EncryptedSortExec(groupingExpressions.map(e => SortOrder(e, Ascending)), true, planLater(child))))) :: Nil
           }
       }
 
