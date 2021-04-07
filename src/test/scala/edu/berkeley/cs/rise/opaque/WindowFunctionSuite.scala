@@ -25,9 +25,24 @@ trait WindowFunctionSuite extends OpaqueSuiteBase with SQLHelper {
 
   test("reuse window partitionBy") {
     checkAnswer() { sl =>
-      val df = sl.applyTo(Seq((1, "1"), (2, "2"), (1, "1"), (2, "2")).toDF("key", "value"))
-      val w = Window.partitionBy("key").orderBy("value")
-      df.select(lead("key", 1).over(w), lead("value", 1).over(w))
+      val simpleData = Seq(
+        ("James", "Sales", 3000),
+        ("Michael", "Sales", 4600),
+        ("Robert", "Sales", 4100),
+        ("Maria", "Finance", 3000),
+        ("James", "Sales", 3000),
+        ("Scott", "Finance", 3300),
+        ("Jen", "Finance", 3900),
+        ("Jeff", "Marketing", 3000),
+        ("Kumar", "Marketing", 2000),
+        ("Saif", "Sales", 4100)
+      )
+      val df = sl.applyTo(simpleData.toDF("employee_name", "department", "salary"))
+      val w = Window.partitionBy("department").orderBy("salary")
+      val res = df.withColumn("rowNumber", row_number.over(w))
+      res.explain
+      res.show
+      res
     }
   }
 }
