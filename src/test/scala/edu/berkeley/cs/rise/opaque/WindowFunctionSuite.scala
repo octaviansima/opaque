@@ -51,7 +51,6 @@ trait WindowFunctionSuite extends OpaqueSuiteBase with SQLHelper {
       val df =
         sl.applyTo(Seq(("bar", 2L), ("bar", 2L), ("foo", 1L), ("foo", 2L)).toDF("word", "num"))
       val res = df.rollup($"word", $"num").count
-      res.explain
       res
     }
   }

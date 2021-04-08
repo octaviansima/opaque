@@ -353,6 +353,11 @@ object OpaqueOperators extends Strategy with JoinSelectionHelper {
     case EncryptedBlockRDD(output, rdd) =>
       EncryptedBlockRDDScanExec(output, rdd) :: Nil
 
+    case e @ Expand(projections, output, child) if isEncrypted(child) =>
+      println(projections)
+      println(output)
+      Nil
+
     case _ =>
       if (isEncrypted(plan)) {
         throw new OpaqueException(
