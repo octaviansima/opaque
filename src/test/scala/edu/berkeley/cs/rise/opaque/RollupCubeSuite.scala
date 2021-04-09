@@ -17,34 +17,8 @@
 
 package edu.berkeley.cs.rise.opaque
 
-import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.functions._
-
-trait WindowFunctionSuite extends OpaqueSuiteBase with SQLHelper {
+trait RollupCubeSuite extends OpaqueSuiteBase with SQLHelper {
   import spark.implicits._
-
-  test("reuse window partitionBy") {
-    checkAnswer() { sl =>
-      val simpleData = Seq(
-        ("James", "Sales", 3000),
-        ("Michael", "Sales", 4600),
-        ("Robert", "Sales", 4100),
-        ("Maria", "Finance", 3000),
-        ("James", "Sales", 3000),
-        ("Scott", "Finance", 3300),
-        ("Jen", "Finance", 3900),
-        ("Jeff", "Marketing", 3000),
-        ("Kumar", "Marketing", 2000),
-        ("Saif", "Sales", 4100)
-      )
-      val df = sl.applyTo(simpleData.toDF("employee_name", "department", "salary"))
-      val w = Window.partitionBy("department").orderBy("salary")
-      val res = df.withColumn("rowNumber", row_number.over(w))
-      res.explain
-      res.show
-      res
-    }
-  }
 
   test("rollup") {
     checkAnswer() { sl =>
@@ -56,10 +30,8 @@ trait WindowFunctionSuite extends OpaqueSuiteBase with SQLHelper {
   }
 }
 
-class SinglePartitionWindowFunctionSuite
-    extends WindowFunctionSuite
-    with SinglePartitionSparkSession {}
+class SinglePartitionRollupCubeSuite extends RollupCubeSuite with SinglePartitionSparkSession {}
 
-class MultiplePartitionWindowFunctionSuite
-    extends WindowFunctionSuite
+class MultiplePartitionRollupCubeSuite
+    extends RollupCubeSuite
     with MultiplePartitionSparkSession {}
